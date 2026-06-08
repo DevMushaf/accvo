@@ -1,5 +1,7 @@
-import React, { useEffect } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import React, { useCallback, useRef } from 'react';
+import { Image, StyleSheet, View, type ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -8,13 +10,19 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { palette } from '@/theme/colors';
+import { waitMinSplashDuration } from '@/constants/splash';
 
-export function SplashOverlay() {
+interface SplashOverlayProps {
+  style?: ViewStyle;
+  onMinDurationElapsed?: () => void;
+}
+
+export function SplashOverlay({ style, onMinDurationElapsed }: SplashOverlayProps) {
   const scale = useSharedValue(0.92);
   const pulse = useSharedValue(1);
+  const timerStarted = useRef(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     scale.value = withTiming(1, { duration: 400 });
     pulse.value = withRepeat(
       withSequence(withTiming(1.04, { duration: 900 }), withTiming(1, { duration: 900 })),
@@ -23,15 +31,29 @@ export function SplashOverlay() {
     );
   }, [pulse, scale]);
 
+  const handleLayout = useCallback(() => {
+    void SplashScreen.hideAsync();
+
+    if (timerStarted.current) {
+      return;
+    }
+    timerStarted.current = true;
+
+    void waitMinSplashDuration().then(() => {
+      onMinDurationElapsed?.();
+    });
+  }, [onMinDurationElapsed]);
+
   const logoStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value * pulse.value }],
   }));
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]} onLayout={handleLayout} collapsable={false}>
+      <StatusBar style="dark" />
       <Animated.View style={logoStyle}>
         <Image
-          source={require('../../assets/images/splash-icon.png')}
+          source={require('../../assets/images/logo-transparent.png')}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -45,10 +67,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.primary,
+    backgroundColor: '#FFFFFF',
   },
   logo: {
-    width: 140,
-    height: 140,
+    width: 300,
+    height: 200,
   },
 });

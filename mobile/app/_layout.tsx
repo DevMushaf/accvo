@@ -9,10 +9,11 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
+import { SplashOverlay } from '@/components/SplashOverlay';
 import { AppProvider } from '@/providers/AppProvider';
-import { BootstrapProvider } from '@/providers/BootstrapContext';
 import { useTheme } from '@/providers/ThemeProvider';
 
 export { ErrorBoundary } from 'expo-router';
@@ -48,47 +49,52 @@ function NavigationStack() {
   );
 }
 
-function RootLayoutContent() {
+export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
   });
-  const [appReady, setAppReady] = useState(false);
-  const [splashHidden, setSplashHidden] = useState(false);
+  const [bootstrapped, setBootstrapped] = useState(false);
+  const [minSplashElapsed, setMinSplashElapsed] = useState(false);
 
-  const handleAppReady = useCallback(() => {
-    setAppReady(true);
+  const handleBootstrapComplete = useCallback(() => {
+    setBootstrapped(true);
+  }, []);
+
+  const handleMinSplashElapsed = useCallback(() => {
+    setMinSplashElapsed(true);
   }, []);
 
   useEffect(() => {
     if (fontError) throw fontError;
   }, [fontError]);
 
-  useEffect(() => {
-    async function hideSplash() {
-      if (fontsLoaded && appReady && !splashHidden) {
-        await SplashScreen.hideAsync();
-        setSplashHidden(true);
-      }
-    }
-    void hideSplash();
-  }, [fontsLoaded, appReady, splashHidden]);
-
-  if (!fontsLoaded) {
-    return null;
-  }
+  const appReady = fontsLoaded && bootstrapped && minSplashElapsed;
 
   return (
-    <BootstrapProvider isReady={appReady} onReady={handleAppReady}>
-      <AppProvider>
-        <NavigationStack />
+    <View style={styles.root}>
+      <AppProvider onBootstrapComplete={handleBootstrapComplete}>
+        {appReady ? <NavigationStack /> : null}
       </AppProvider>
-    </BootstrapProvider>
+
+      {!appReady ? (
+        <View style={styles.splashLayer} pointerEvents="auto" collapsable={false}>
+          <SplashOverlay onMinDurationElapsed={handleMinSplashElapsed} />
+        </View>
+      ) : null}
+    </View>
   );
 }
 
-export default function RootLayout() {
-  return <RootLayoutContent />;
-}
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  splashLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+  },
+});

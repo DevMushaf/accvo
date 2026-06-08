@@ -11,22 +11,26 @@ SOURCE = ASSETS / "logo-transparent.png"
 BRAND_BLUE = (0, 86, 179)  # #0056B3
 WHITE = (255, 255, 255)
 
+# Wordmark starts ~49% from left; icon-only block is the left ~38%.
+ICON_SPLIT_RATIO = 0.385
+
 
 def find_icon_crop_box(img: Image.Image) -> tuple[int, int, int, int]:
-    """Crop icon-only region (left of wordmark) using left-half bounding box."""
+    """Crop icon-only region — document + check + sparkle, no Accvo wordmark."""
     w, h = img.size
-    split_x = int(w * 0.49)
-    left_half = img.crop((0, 0, split_x, h))
-    bbox = left_half.getbbox()
+    split_x = int(w * ICON_SPLIT_RATIO)
+    region = img.crop((0, 0, split_x, h))
+    bbox = region.getbbox()
     if not bbox:
-        return (0, 0, w // 2, h)
+        return (0, 0, split_x, h)
 
-    pad = 6
-    left = max(0, bbox[0] - pad)
-    top = max(0, bbox[1] - pad)
-    right = min(split_x, bbox[2] + pad)
-    bottom = min(h, bbox[3] + pad)
-    return (left, top, right, bottom)
+    pad = 4
+    return (
+        max(0, bbox[0] - pad),
+        max(0, bbox[1] - pad),
+        min(w, bbox[2] + pad),
+        min(h, bbox[3] + pad),
+    )
 
 
 def recolor_icon(img: Image.Image, color: tuple[int, int, int]) -> Image.Image:
@@ -58,31 +62,37 @@ def pad_square(img: Image.Image, size: int, bg: tuple[int, int, int, int] | None
     return canvas
 
 
+def solid_color_png(size: int, color: tuple[int, int, int]) -> Image.Image:
+    return Image.new("RGBA", (size, size), (*color, 255))
+
+
 def main() -> None:
     source = Image.open(SOURCE).convert("RGBA")
     box = find_icon_crop_box(source)
     icon_blue = source.crop(box)
 
-    # Blue icon on transparent — in-app / source asset
     icon_blue.save(ASSETS / "logo-icon-only.png")
 
-    # White icon for splash on brand blue background
     icon_white = recolor_icon(icon_blue.copy(), WHITE)
     icon_white.save(ASSETS / "splash-icon.png")
 
-    # 1024 app icon: brand blue bg + white icon
     app_icon = pad_square(icon_white, 1024, (*BRAND_BLUE, 255))
     app_icon.save(ASSETS / "icon.png")
 
-    # Android adaptive foreground (transparent bg, white icon, safe zone)
     adaptive = pad_square(icon_white, 1024, (0, 0, 0, 0))
     adaptive.save(ASSETS / "android-icon-foreground.png")
 
-    print("Generated:")
-    print(f"  logo-icon-only.png  {icon_blue.size}")
-    print(f"  splash-icon.png     {icon_white.size}")
-    print(f"  icon.png            1024x1024")
-    print(f"  android-icon-foreground.png  1024x1024")
+    monochrome = pad_square(icon_white, 1024, (0, 0, 0, 0))
+    monochrome.save(ASSETS / "android-icon-monochrome.png")
+
+    solid_color_png(1024, BRAND_BLUE).save(ASSETS / "android-icon-background.png")
+
+    app_icon.resize((48, 48), Image.Resampling.LANCZOS).save(ASSETS / "favicon.png")
+
+    print("Generated from logo-transparent.png:")
+    print(f"  crop box           {box}")
+    print(f"  logo-icon-only.png {icon_blue.size}")
+    print(f"  splash-icon.png    {icon_white.size} (white icon for #0056B3 splash)")
 
 
 if __name__ == "__main__":
