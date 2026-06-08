@@ -18,7 +18,7 @@ export function EmptyState({ title, message, actionLabel, onAction }: EmptyState
   return (
     <View style={styles.container}>
       <Image
-        source={require('../../assets/images/logo-transparent.png')}
+        source={require('../../assets/images/logo-icon-only.png')}
         style={styles.logo}
         resizeMode="contain"
       />
@@ -47,10 +47,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   logo: {
-    width: 80,
-    height: 80,
-    marginBottom: spacing.md,
-    opacity: 0.9,
+    width: 96,
+    height: 96,
+    marginBottom: spacing.lg,
+    opacity: 0.95,
   },
   title: {
     fontSize: typography.lg,

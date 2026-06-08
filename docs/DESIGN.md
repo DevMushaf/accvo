@@ -46,6 +46,15 @@ Implementation: `mobile/src/theme/colors.ts`
 | `StatusChip` | Invoice status badge |
 | `EmptyState` | Logo + message + CTA |
 | `ScreenHeader` | Page title + subtitle |
+| `HeaderMenuButton` | Top-left hamburger → opens slide-out menu |
+| `AppMenuDrawer` | Slide-out menu panel (Settings, Upgrade) |
+
+## Navigation
+
+- **Bottom tabs:** Home (business name in header), Invoices, Customers
+- **Top-left hamburger** on all tab screens → opens `AppMenuDrawer` slide-out panel
+- **Menu items:** Settings (`/settings`), Upgrade to Pro (`/upgrade`, free tier only)
+- Settings and Upgrade are stack screens (back button), not tabs
 
 ## Splash screen
 

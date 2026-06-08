@@ -4,14 +4,13 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Input } from '@/components/Input';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useSettingsStore } from '@/store/settingsStore';
 import { fontFamily, spacing, typography } from '@/theme';
 import { SUPPORTED_CURRENCIES } from '@/utils/currency';
 import type { ThemeMode } from '@/theme/colors';
 
-export default function MoreScreen() {
+export default function SettingsScreen() {
   const router = useRouter();
   const { colors, themeMode, setThemeMode } = useTheme();
   const settings = useSettingsStore((s) => s.settings);
@@ -28,7 +27,9 @@ export default function MoreScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
     >
-      <ScreenHeader title="Settings" subtitle="Customize your Accvo experience" />
+      <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
+        Customize your Accvo experience
+      </Text>
 
       <Card style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
@@ -115,6 +116,7 @@ export default function MoreScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: spacing.md, paddingBottom: spacing.xl },
+  subtitle: { fontSize: typography.sm, marginBottom: spacing.md },
   section: { marginBottom: spacing.md },
   sectionTitle: { fontSize: typography.base, marginBottom: spacing.sm },
   fieldLabel: { fontSize: typography.sm, marginBottom: spacing.xs },

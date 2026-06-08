@@ -6,7 +6,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { InvoiceCard } from '@/components/InvoiceCard';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { useTheme } from '@/providers/ThemeProvider';
 import { getDashboardStats, getRecentInvoices } from '@/services/invoiceRepository';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -55,10 +54,9 @@ export default function DashboardScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <ScreenHeader
-        title={settings.businessName}
-        subtitle="Your business at a glance"
-      />
+      <Text style={[styles.pageSubtitle, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
+        Your business at a glance
+      </Text>
 
       <Card style={styles.incomeCard}>
         <Text style={[styles.incomeLabel, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
@@ -123,6 +121,7 @@ function StatBox({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: spacing.md, paddingBottom: spacing.xl },
+  pageSubtitle: { fontSize: typography.sm, marginBottom: spacing.md },
   incomeCard: { marginBottom: spacing.md },
   incomeLabel: { fontSize: typography.sm, marginBottom: spacing.xs },
   incomeValue: { fontSize: typography.xxl },
