@@ -29,13 +29,12 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
-      "expo-sharing",
       "expo-localization",
       [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 140,
           "resizeMode": "contain",
           "backgroundColor": "#0056B3"
         }

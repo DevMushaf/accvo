@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { SplashOverlay } from '@/components/SplashOverlay';
+import { useBootstrap } from '@/providers/BootstrapContext';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { initDatabase } from '@/services/localDb';
 import { useSettingsStore } from '@/store/settingsStore';
-import { palette } from '@/theme/colors';
 
 interface AppProviderProps {
   children: React.ReactNode;
@@ -12,6 +12,7 @@ interface AppProviderProps {
 
 export function AppProvider({ children }: AppProviderProps) {
   const [ready, setReady] = useState(false);
+  const { onReady } = useBootstrap();
   const loadSettings = useSettingsStore((s) => s.loadSettings);
 
   useEffect(() => {
@@ -19,26 +20,14 @@ export function AppProvider({ children }: AppProviderProps) {
       await initDatabase();
       await loadSettings();
       setReady(true);
+      onReady();
     }
     void bootstrap();
-  }, [loadSettings]);
+  }, [loadSettings, onReady]);
 
   if (!ready) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
-      </View>
-    );
+    return <SplashOverlay />;
   }
 
   return <ThemeProvider>{children}</ThemeProvider>;
 }
-
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.primary,
-  },
-});

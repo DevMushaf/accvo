@@ -49,10 +49,18 @@ Implementation: `mobile/src/theme/colors.ts`
 
 ## Splash screen
 
-- Background: `#0056B3`
-- Center: transparent logo (`logo-transparent.png`)
-- Status bar: light content
-- Hide splash after fonts + SQLite init
+- **Style:** Icon-only mark on brand blue (`#0056B3`) — no wordmark text
+- **Background:** `#0056B3`
+- **Center graphic:** White icon-only PNG (`splash-icon.png`) — document + checkmark + sparkle
+- **Size:** 140dp wide (native splash via `expo-splash-screen`)
+- **Status bar:** Light content during splash
+- **Assets:**
+  - `splash-icon.png` — white icon, transparent background (native splash + in-app overlay)
+  - `logo-icon-only.png` — blue icon crop (source / in-app use)
+  - `logo-transparent.png` — full wordmark for empty states and upgrade screen
+  - `icon.png` — 1024×1024 app icon (white icon on brand blue)
+- **Startup flow:** Native splash stays visible until fonts + SQLite/settings load; `SplashOverlay` matches native splash (no spinner flash)
+- **Regenerate assets:** `python mobile/scripts/generate_splash_assets.py`
 
 ## Dark mode
 

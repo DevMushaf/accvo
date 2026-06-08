@@ -8,10 +8,11 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import 'react-native-reanimated';
 
 import { AppProvider } from '@/providers/AppProvider';
+import { BootstrapProvider } from '@/providers/BootstrapContext';
 import { useTheme } from '@/providers/ThemeProvider';
 
 export { ErrorBoundary } from 'expo-router';
@@ -47,31 +48,47 @@ function NavigationStack() {
   );
 }
 
-export default function RootLayout() {
+function RootLayoutContent() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
   });
+  const [appReady, setAppReady] = useState(false);
+  const [splashHidden, setSplashHidden] = useState(false);
+
+  const handleAppReady = useCallback(() => {
+    setAppReady(true);
+  }, []);
 
   useEffect(() => {
     if (fontError) throw fontError;
   }, [fontError]);
 
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
+    async function hideSplash() {
+      if (fontsLoaded && appReady && !splashHidden) {
+        await SplashScreen.hideAsync();
+        setSplashHidden(true);
+      }
     }
-  }, [fontsLoaded]);
+    void hideSplash();
+  }, [fontsLoaded, appReady, splashHidden]);
 
   if (!fontsLoaded) {
     return null;
   }
 
   return (
-    <AppProvider>
-      <NavigationStack />
-    </AppProvider>
+    <BootstrapProvider isReady={appReady} onReady={handleAppReady}>
+      <AppProvider>
+        <NavigationStack />
+      </AppProvider>
+    </BootstrapProvider>
   );
+}
+
+export default function RootLayout() {
+  return <RootLayoutContent />;
 }
