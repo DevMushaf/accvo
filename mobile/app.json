@@ -6,13 +6,14 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "accvo",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.accvo.app"
     },
     "android": {
       "package": "com.accvo.app",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#0056B3",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -36,6 +37,12 @@
           "imageWidth": 300,
           "resizeMode": "contain",
           "backgroundColor": "#FFFFFF"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Accvo to access your photos to set your business logo."
         }
       ]
     ],

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
+import { useScrollFieldIntoView } from '@/contexts/FormScrollContext';
 import { useTheme } from '@/providers/ThemeProvider';
 import { fontFamily, radius, spacing, typography } from '@/theme';
 
@@ -9,11 +10,13 @@ interface InputProps extends TextInputProps {
   error?: string;
 }
 
-export function Input({ label, error, style, ...props }: InputProps) {
+export function Input({ label, error, style, onFocus, ...props }: InputProps) {
   const { colors } = useTheme();
+  const wrapperRef = useRef<View>(null);
+  const scrollFieldIntoView = useScrollFieldIntoView();
 
   return (
-    <View style={styles.wrapper}>
+    <View ref={wrapperRef} style={styles.wrapper} collapsable={false}>
       {label ? (
         <Text style={[styles.label, { color: colors.text, fontFamily: fontFamily.medium }]}>
           {label}
@@ -31,6 +34,14 @@ export function Input({ label, error, style, ...props }: InputProps) {
           },
           style,
         ]}
+        onFocus={(event) => {
+          onFocus?.(event);
+          if (scrollFieldIntoView && wrapperRef.current) {
+            setTimeout(() => {
+              if (wrapperRef.current) scrollFieldIntoView(wrapperRef.current);
+            }, 100);
+          }
+        }}
         {...props}
       />
       {error ? (

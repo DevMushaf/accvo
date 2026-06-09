@@ -180,6 +180,26 @@ export async function updateInvoice(id: string, input: UpdateInvoiceInput): Prom
   return getInvoiceById(id);
 }
 
+export async function duplicateInvoice(id: string): Promise<Invoice | null> {
+  const source = await getInvoiceById(id);
+  if (!source) return null;
+
+  return createInvoice({
+    customerId: source.customerId,
+    status: 'draft',
+    issueDate: toISODate(),
+    dueDate: source.dueDate,
+    currency: source.currency,
+    taxRate: source.taxRate,
+    notes: source.notes,
+    lineItems: source.lineItems.map((item) => ({
+      description: item.description,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+    })),
+  });
+}
+
 export async function deleteInvoice(id: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM invoice_line_items WHERE invoiceId = ?', id);

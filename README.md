@@ -8,43 +8,58 @@ Accvo helps freelancers, service providers, and small agencies create invoices, 
 
 ### Phase 1 features (current)
 
-- Invoice generator with line items, tax, and auto totals
-- PDF export and share (Accvo watermark on free tier)
-- Customer records
-- Income dashboard (from paid invoices)
+- Invoice generator with line items, tax, due dates, and notes
+- **Duplicate invoice** from invoice detail
+- **Search & filter** on Invoices and Customers tabs
+- **Recurring invoices** — weekly, monthly, quarterly, or yearly schedules; drafts auto-created when due
+- PDF export, preview, and share (Accvo watermark on free tier)
+- **4 invoice PDF templates** (Classic, Minimal, Modern, Elegant) + business card designs
+- Customer records with inline edit on detail screen
+- **Analytics dashboard** (free) — computed locally from SQLite; no servers, no cost
+  - Outstanding amount, average invoice, month-over-month paid revenue
+  - 6-month revenue chart, top customers by paid revenue
+- Income summary on home dashboard
+- Business profile, logo, and business card PDF
+- Welcome screen with guest mode (no account on launch)
 - Offline mode (SQLite on device)
 - Multi-currency support
-- Tax calculations
-- Dark mode
-- Invoice edit, due dates, and notes on detail screen
-- 3 PDF templates (Classic, Minimal, Modern) — choose in Settings
-- First-launch onboarding (business name & currency)
-- Slide-out hamburger menu → Settings
+- Slide-out menu → Settings, Business Card, Upgrade
+
+### Analytics (free tier)
+
+All analytics run **on your device** from invoice data in SQLite. There is no Firebase Analytics, no third-party SDK, and **no ongoing cost** — just SQL queries when you open the dashboard.
 
 ### Build standalone APK (EAS)
 
 ```bash
 cd mobile
-npx eas build --platform android --profile preview
+npm run build:android
+```
+
+Production build:
+
+```bash
+cd mobile
+npm run build:android:prod
 ```
 
 For local dev build: `npx expo run:android` (USB device required).
 
 ### Coming soon
 
-- **Phase 2:** Pro sign-up, cloud sync, CRM, quotes, WhatsApp share, Stripe payment links
+- **Phase 2:** Pro sign-up, cloud sync, Firebase auth, Stripe payment links
 - **Phase 3:** AI invoice generation, voice input, smart pricing
-- **Phase 4:** Scheduling, analytics, expenses, notifications
+- **Phase 4:** Scheduling, expenses, push notifications
 
 ## Tech stack
 
 | Layer | Technology |
 |-------|------------|
-| Mobile | Expo SDK 56, React Native, TypeScript |
+| Mobile | Expo SDK 54, React Native, TypeScript |
 | Navigation | Expo Router |
 | Local DB | expo-sqlite |
 | State | Zustand + React Context (theme) |
-| PDF | expo-print + expo-sharing |
+| PDF | expo-print + expo-sharing + react-native-webview (preview) |
 | Backend (Phase 2+) | Firebase Auth, Firestore, Cloud Functions |
 
 ## Project structure
@@ -63,7 +78,7 @@ accvo/
 
 - Node.js 20 LTS
 - npm
-- Android Studio or Expo Go on a physical device
+- Android Studio or Expo development build on a physical device
 
 ### Run the app
 
@@ -73,13 +88,13 @@ npm install
 npm start
 ```
 
-Press `a` for Android emulator, or scan the QR code with Expo Go.
+Press `a` for Android emulator, or scan the QR code with your development build.
 
 ### Build for Android (EAS)
 
 ```bash
 cd mobile
-npx eas build --platform android
+npm run build:android
 ```
 
 ## Freemium model
@@ -87,9 +102,10 @@ npx eas build --platform android
 | Free | Pro (Phase 2+) |
 |------|----------------|
 | Unlimited invoices | No PDF watermark |
-| Basic PDF + share | AI features |
-| Local storage | Cloud backup & sync |
-| Accvo watermark on PDF | Analytics, Stripe links, reminders |
+| Local analytics dashboard | Cloud backup & sync |
+| Recurring invoices | AI features |
+| Basic PDF + share | Stripe links, reminders |
+| Accvo watermark on PDF | Priority support |
 
 No account required for free tier. Sign-up only when upgrading to Pro.
 

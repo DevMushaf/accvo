@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
+import { KeyboardAwareScreen } from '@/components/KeyboardAwareScreen';
 import { LineItemEditor } from '@/components/LineItemEditor';
 import { useTheme } from '@/providers/ThemeProvider';
 import { getAllCustomers } from '@/services/customerRepository';
@@ -73,10 +74,9 @@ export function InvoiceForm({ initialValues, submitLabel, onSubmit }: InvoiceFor
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScreen
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
     >
       <Text style={[styles.label, { color: colors.text, fontFamily: fontFamily.medium }]}>
         Customer (optional)
@@ -140,7 +140,7 @@ export function InvoiceForm({ initialValues, submitLabel, onSubmit }: InvoiceFor
       </View>
 
       <Button title={submitLabel} onPress={handleSave} loading={loading} />
-    </ScrollView>
+    </KeyboardAwareScreen>
   );
 }
 

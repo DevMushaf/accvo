@@ -1,24 +1,27 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
+import { AnalyticsDashboard } from '@/components/AnalyticsDashboard';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { BusinessSetupCard, GuestPromptBanner } from '@/components/GuestPromptBanner';
 import { InvoiceCard } from '@/components/InvoiceCard';
-import { OnboardingModal } from '@/components/OnboardingModal';
 import { useTheme } from '@/providers/ThemeProvider';
+import { getAnalyticsSummary } from '@/services/analyticsRepository';
 import { getDashboardStats, getRecentInvoices } from '@/services/invoiceRepository';
+import { processDueRecurringInvoices } from '@/services/recurringInvoiceRepository';
 import { useSettingsStore } from '@/store/settingsStore';
 import { fontFamily, spacing, typography } from '@/theme';
+import type { AnalyticsSummary } from '@/services/analyticsRepository';
 import type { Invoice } from '@/types/invoice';
 import { formatCurrency } from '@/utils/currency';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const settings = useSettingsStore((s) => s.settings);
-  const isSettingsLoaded = useSettingsStore((s) => s.isLoaded);
+  const defaultCurrency = useSettingsStore((s) => s.settings.defaultCurrency);
   const [stats, setStats] = useState({
     totalIncome: 0,
     paidCount: 0,
@@ -26,23 +29,23 @@ export default function DashboardScreen() {
     overdueCount: 0,
     customerCount: 0,
   });
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([]);
+  const [recurringCreated, setRecurringCreated] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-
-  useEffect(() => {
-    if (isSettingsLoaded && !settings.hasSeenOnboarding) {
-      setShowOnboarding(true);
-    }
-  }, [isSettingsLoaded, settings.hasSeenOnboarding]);
 
   const loadData = useCallback(async () => {
-    const [dashboardStats, recent] = await Promise.all([
+    const created = await processDueRecurringInvoices();
+    setRecurringCreated(created.length);
+
+    const [dashboardStats, recent, analyticsData] = await Promise.all([
       getDashboardStats(),
       getRecentInvoices(5),
+      getAnalyticsSummary(),
     ]);
     setStats(dashboardStats);
     setRecentInvoices(recent);
+    setAnalytics(analyticsData);
   }, []);
 
   useFocusEffect(
@@ -58,8 +61,6 @@ export default function DashboardScreen() {
   }
 
   return (
-    <>
-    <OnboardingModal visible={showOnboarding} onComplete={() => setShowOnboarding(false)} />
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
@@ -69,12 +70,23 @@ export default function DashboardScreen() {
         Your business at a glance
       </Text>
 
+      <GuestPromptBanner />
+      <BusinessSetupCard />
+
+      {recurringCreated > 0 ? (
+        <Card style={styles.recurringBanner}>
+          <Text style={{ color: colors.text, fontFamily: fontFamily.medium }}>
+            {recurringCreated} draft invoice{recurringCreated === 1 ? '' : 's'} created from recurring schedules.
+          </Text>
+        </Card>
+      ) : null}
+
       <Card style={styles.incomeCard}>
         <Text style={[styles.incomeLabel, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
           Total income
         </Text>
         <Text style={[styles.incomeValue, { color: colors.primary, fontFamily: fontFamily.bold }]}>
-          {formatCurrency(stats.totalIncome, settings.defaultCurrency)}
+          {formatCurrency(stats.totalIncome, defaultCurrency)}
         </Text>
       </Card>
 
@@ -83,6 +95,8 @@ export default function DashboardScreen() {
         <StatBox label="Pending" value={stats.pendingCount} colors={colors} accent={colors.warning} />
         <StatBox label="Overdue" value={stats.overdueCount} colors={colors} accent={colors.error} />
       </View>
+
+      {analytics ? <AnalyticsDashboard data={analytics} currency={defaultCurrency} /> : null}
 
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
@@ -105,9 +119,9 @@ export default function DashboardScreen() {
 
       <View style={styles.actions}>
         <Button title="New invoice" onPress={() => router.push('/invoices/create')} />
+        <Button title="Recurring invoices" variant="secondary" onPress={() => router.push('/recurring')} />
       </View>
     </ScrollView>
-    </>
   );
 }
 
@@ -134,6 +148,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: spacing.md, paddingBottom: spacing.xl },
   pageSubtitle: { fontSize: typography.sm, marginBottom: spacing.md },
+  recurringBanner: { marginBottom: spacing.md },
   incomeCard: { marginBottom: spacing.md },
   incomeLabel: { fontSize: typography.sm, marginBottom: spacing.xs },
   incomeValue: { fontSize: typography.xxl },
@@ -149,5 +164,5 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: typography.xs, marginTop: spacing.xs },
   sectionHeader: { marginBottom: spacing.sm },
   sectionTitle: { fontSize: typography.lg },
-  actions: { marginTop: spacing.md },
+  actions: { marginTop: spacing.md, gap: spacing.sm },
 });

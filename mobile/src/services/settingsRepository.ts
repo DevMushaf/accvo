@@ -1,8 +1,30 @@
 import { getDatabase } from '@/services/localDb';
-import type { AppSettings } from '@/types/settings';
+import type { AppSettings, AuthMode } from '@/types/settings';
 import { DEFAULT_SETTINGS } from '@/types/settings';
 
 const SETTINGS_KEY = 'app_settings';
+
+interface LegacySettings extends Partial<AppSettings> {
+  hasSeenOnboarding?: boolean;
+}
+
+function migrateSettings(parsed: LegacySettings): AppSettings {
+  const hadLegacyOnboarding = parsed.hasSeenOnboarding === true;
+  const hasSeenWelcome = parsed.hasSeenWelcome ?? hadLegacyOnboarding ?? false;
+
+  let authMode: AuthMode = parsed.authMode ?? 'none';
+  if (authMode === 'none' && hasSeenWelcome) {
+    authMode = 'guest';
+  }
+
+  return {
+    ...DEFAULT_SETTINGS,
+    ...parsed,
+    authMode,
+    hasSeenWelcome: parsed.hasSeenWelcome ?? hadLegacyOnboarding ?? false,
+    hasDismissedGuestBanner: parsed.hasDismissedGuestBanner ?? false,
+  };
+}
 
 export async function getSettings(): Promise<AppSettings> {
   const db = await getDatabase();
@@ -16,13 +38,15 @@ export async function getSettings(): Promise<AppSettings> {
   }
 
   try {
-    const parsed = JSON.parse(row.value) as Partial<AppSettings>;
-    return {
-      ...DEFAULT_SETTINGS,
-      ...parsed,
-      // Existing installs before onboarding: skip welcome screen
-      hasSeenOnboarding: parsed.hasSeenOnboarding ?? true,
-    };
+    const parsed = JSON.parse(row.value) as LegacySettings;
+    const migrated = migrateSettings(parsed);
+
+    // Existing installs before welcome screen: skip welcome once
+    if (parsed.hasSeenWelcome === undefined && parsed.hasSeenOnboarding === undefined) {
+      return { ...migrated, hasSeenWelcome: true, authMode: migrated.authMode === 'none' ? 'guest' : migrated.authMode };
+    }
+
+    return migrated;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }

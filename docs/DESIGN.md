@@ -47,7 +47,9 @@ Implementation: `mobile/src/theme/colors.ts`
 | `EmptyState` | Logo + message + CTA |
 | `ScreenHeader` | Page title + subtitle |
 | `HeaderMenuButton` | Top-left hamburger → opens slide-out menu |
-| `AppMenuDrawer` | Slide-out menu panel (Settings, Upgrade) |
+| `AppMenuDrawer` | Slide-out menu panel (Settings, Business Card, Upgrade) |
+| `AnalyticsDashboard` | Local revenue charts and business metrics (free tier) |
+| `SearchBar` / `FilterChips` | List search and status filters |
 
 ## Invoice PDF templates
 
@@ -58,15 +60,45 @@ Users choose a default template in Settings. Applied to all shared PDFs.
 | **Classic** | Accvo blue header, light blue table header (default) |
 | **Minimal** | Serif type, black rules, lots of whitespace |
 | **Modern** | Blue header band with accent stripe, card-style table |
+| **Elegant** | Refined serif layout with subtle accents |
 
 Implementation: `mobile/src/services/pdf/invoicePdfTemplates.ts`
+
+## Recurring invoices
+
+- Schedules stored locally in SQLite (`recurring_invoices`, `recurring_line_items`)
+- Frequencies: weekly, monthly, quarterly, yearly
+- When due, draft invoices are created automatically on dashboard focus
+- Manage from Invoices tab → **Recurring schedules** or Home → **Recurring invoices**
 
 ## Navigation
 
 - **Bottom tabs:** Home (business name in header), Invoices, Customers
 - **Top-left hamburger** on all tab screens → opens `AppMenuDrawer` slide-out panel
-- **Menu items:** Settings (`/settings`), Upgrade to Pro (`/upgrade`, free tier only)
+- **Menu items:** Settings (`/settings`), Business Card (`/business-card`), Upgrade to Pro (`/upgrade`, free tier only)
 - Settings and Upgrade are stack screens (back button), not tabs
+
+## Welcome and auth flow (post-splash)
+
+```mermaid
+flowchart TD
+  Splash[Splash ~2.5s] --> Welcome{hasSeenWelcome?}
+  Welcome -->|No| WelcomeScreen[welcome.tsx]
+  Welcome -->|Yes| Tabs[Dashboard tabs]
+  WelcomeScreen -->|Continue as Guest| Tabs
+  WelcomeScreen -->|Sign in| Auth[auth placeholder]
+  WelcomeScreen -->|Upgrade link| Upgrade[/upgrade]
+  Auth -->|Continue as Guest| Tabs
+```
+
+- **Welcome screen** (`app/welcome.tsx`): shown once on first install
+  - Primary: **Continue as Guest** → dashboard, local SQLite, no login
+  - Secondary: **Sign in / Sign up** → Phase 2 auth placeholder
+  - Link: **Upgrade to Pro**
+- **Auth stub** (`app/auth/index.tsx`): Firebase auth in Phase 2; guest escape hatch always available
+- **Guest banner** on Home: dismissible prompt to sign in later (does not block PDF or invoices)
+- **Business setup card** on Home: optional link to Settings if business name is still default
+- Settings fields: `authMode`, `hasSeenWelcome`, `hasDismissedGuestBanner`
 
 ## Splash screen
 
@@ -79,13 +111,12 @@ Implementation: `mobile/src/services/pdf/invoicePdfTemplates.ts`
   - `logo-transparent.png` — full logo for splash, empty states, and upgrade screen
   - `logo-icon-only.png` — blue icon crop (app icon generation)
   - `icon.png` — 1024×1024 app icon (white icon on brand blue)
-- **Startup flow:** Native splash stays visible until fonts + SQLite/settings load; `SplashOverlay` matches native splash (no spinner flash)
+- **Tagline:** "Create invoices in seconds" under logo during in-app splash overlay
 - **Regenerate assets:** `python mobile/scripts/generate_splash_assets.py`
 
-## Dark mode
+## Theme
 
-- Respects system preference by default
-- User can override in Settings → Appearance
+- Light mode only (Phase 1)
 - All screens use `useTheme()` for colors
 
 ## Touch targets

@@ -1,16 +1,10 @@
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useRef } from 'react';
-import { Image, StyleSheet, View, type ViewStyle } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
+import { useCallback, useRef } from 'react';
+import { Image, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { waitMinSplashDuration } from '@/constants/splash';
+import { fontFamily, typography } from '@/theme';
 
 interface SplashOverlayProps {
   style?: ViewStyle;
@@ -18,25 +12,12 @@ interface SplashOverlayProps {
 }
 
 export function SplashOverlay({ style, onMinDurationElapsed }: SplashOverlayProps) {
-  const scale = useSharedValue(0.92);
-  const pulse = useSharedValue(1);
   const timerStarted = useRef(false);
-
-  React.useEffect(() => {
-    scale.value = withTiming(1, { duration: 400 });
-    pulse.value = withRepeat(
-      withSequence(withTiming(1.04, { duration: 900 }), withTiming(1, { duration: 900 })),
-      -1,
-      true,
-    );
-  }, [pulse, scale]);
 
   const handleLayout = useCallback(() => {
     void SplashScreen.hideAsync();
 
-    if (timerStarted.current) {
-      return;
-    }
+    if (timerStarted.current) return;
     timerStarted.current = true;
 
     void waitMinSplashDuration().then(() => {
@@ -44,20 +25,15 @@ export function SplashOverlay({ style, onMinDurationElapsed }: SplashOverlayProp
     });
   }, [onMinDurationElapsed]);
 
-  const logoStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value * pulse.value }],
-  }));
-
   return (
     <View style={[styles.container, style]} onLayout={handleLayout} collapsable={false}>
       <StatusBar style="dark" />
-      <Animated.View style={logoStyle}>
-        <Image
-          source={require('../../assets/images/logo-transparent.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </Animated.View>
+      <Image
+        source={require('../../assets/images/logo-transparent.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+      <Text style={styles.tagline}>Create invoices in seconds</Text>
     </View>
   );
 }
@@ -70,7 +46,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   logo: {
-    width: 300,
-    height: 200,
+    width: 280,
+    height: 186,
+  },
+  tagline: {
+    marginTop: 12,
+    fontSize: typography.base,
+    fontFamily: fontFamily.medium,
+    color: '#0056B3',
+    textAlign: 'center',
   },
 });

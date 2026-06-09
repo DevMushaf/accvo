@@ -66,8 +66,9 @@ export function AppMenuDrawer() {
     transform: [{ translateX: translateX.value }],
   }));
 
-  function navigateTo(path: '/settings' | '/upgrade') {
+  function navigateTo(path: '/settings' | '/upgrade' | '/business-card') {
     closeMenu();
+    setVisible(false);
     router.push(path);
   }
 
@@ -102,6 +103,11 @@ export function AppMenuDrawer() {
               icon="settings-outline"
               label="Settings"
               onPress={() => navigateTo('/settings')}
+            />
+            <MenuItem
+              icon="card-outline"
+              label="Business Card"
+              onPress={() => navigateTo('/business-card')}
             />
             {subscriptionTier === 'free' ? (
               <MenuItem

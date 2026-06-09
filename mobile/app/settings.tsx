@@ -1,32 +1,54 @@
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { BusinessLogoSection } from '@/components/BusinessLogoSection';
+import { BusinessProfileFields } from '@/components/BusinessProfileFields';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { DocumentPreview } from '@/components/DocumentPreview';
 import { Input } from '@/components/Input';
+import { KeyboardAwareScreen } from '@/components/KeyboardAwareScreen';
+import { TemplatePicker } from '@/components/TemplatePicker';
+import { useAfterTransition } from '@/hooks/useAfterTransition';
+import { useBusinessLogoDataUri } from '@/hooks/useBusinessLogoDataUri';
+import { useBusinessProfileDraft } from '@/hooks/useBusinessProfileDraft';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useTheme } from '@/providers/ThemeProvider';
+import { getInvoicePreviewHtml } from '@/services/pdfService';
 import { useSettingsStore } from '@/store/settingsStore';
 import { fontFamily, spacing, typography } from '@/theme';
 import { INVOICE_TEMPLATE_OPTIONS } from '@/types/invoiceTemplate';
 import type { InvoiceTemplate } from '@/types/invoiceTemplate';
+import { createSampleInvoice } from '@/utils/sampleInvoice';
 import { SUPPORTED_CURRENCIES } from '@/utils/currency';
-import type { ThemeMode } from '@/theme/colors';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { colors, themeMode, setThemeMode } = useTheme();
+  const { colors } = useTheme();
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const { draft, setField } = useBusinessProfileDraft();
+  const [taxRateInput, setTaxRateInput] = useState(String(settings.defaultTaxRate));
 
-  const themeOptions: { label: string; value: ThemeMode }[] = [
-    { label: 'System', value: 'system' },
-    { label: 'Light', value: 'light' },
-    { label: 'Dark', value: 'dark' },
-  ];
+  const afterTransition = useAfterTransition();
+  const logoDataUri = useBusinessLogoDataUri();
+  const debouncedDraft = useDebouncedValue(draft, 700);
+  const previewHtml = useMemo(() => {
+    if (!afterTransition) return '';
+    const merged = { ...settings, ...debouncedDraft };
+    const sample = createSampleInvoice(merged);
+    return getInvoicePreviewHtml(sample, merged, logoDataUri);
+  }, [afterTransition, settings, debouncedDraft, logoDataUri]);
+
+  function handleTaxRateBlur() {
+    const rate = parseFloat(taxRateInput) || 0;
+    void updateSettings({ defaultTaxRate: rate });
+  }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+    <KeyboardAwareScreen
+      style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
     >
       <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
@@ -35,14 +57,13 @@ export default function SettingsScreen() {
 
       <Card style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
-          Business
+          Business profile
         </Text>
-        <Input
-          label="Business name"
-          value={settings.businessName}
-          onChangeText={(businessName) => void updateSettings({ businessName })}
-          placeholder="My Business"
-        />
+        <Text style={[styles.fieldHint, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
+          Shown on invoices and your business card.
+        </Text>
+        <BusinessLogoSection />
+        <BusinessProfileFields draft={draft} onChange={setField} />
         <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: fontFamily.medium }]}>
           Default currency
         </Text>
@@ -60,13 +81,12 @@ export default function SettingsScreen() {
         </View>
         <Input
           label="Default tax rate (%)"
-          value={String(settings.defaultTaxRate)}
-          onChangeText={(v) => {
-            const rate = parseFloat(v) || 0;
-            void updateSettings({ defaultTaxRate: rate });
-          }}
+          value={taxRateInput}
+          onChangeText={setTaxRateInput}
+          onBlur={handleTaxRateBlur}
           keyboardType="decimal-pad"
         />
+        <Button title="Edit business card" variant="secondary" onPress={() => router.push('/business-card')} />
       </Card>
 
       <Card style={styles.section}>
@@ -74,38 +94,15 @@ export default function SettingsScreen() {
           Invoice PDF template
         </Text>
         <Text style={[styles.fieldHint, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
-          Choose how your shared invoice PDFs look.
+          Pick a style — preview updates after you stop typing.
         </Text>
-        <View style={styles.templateList}>
-          {INVOICE_TEMPLATE_OPTIONS.map((option) => (
-            <Button
-              key={option.id}
-              title={option.label}
-              variant={settings.invoiceTemplate === option.id ? 'primary' : 'secondary'}
-              onPress={() => void updateSettings({ invoiceTemplate: option.id as InvoiceTemplate })}
-            />
-          ))}
-        </View>
-        <Text style={[styles.fieldHint, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
-          {INVOICE_TEMPLATE_OPTIONS.find((o) => o.id === settings.invoiceTemplate)?.description}
-        </Text>
-      </Card>
-
-      <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
-          Appearance
-        </Text>
-        <View style={styles.chipRow}>
-          {themeOptions.map((option) => (
-            <Button
-              key={option.value}
-              title={option.label}
-              variant={themeMode === option.value ? 'primary' : 'secondary'}
-              fullWidth={false}
-              onPress={() => setThemeMode(option.value)}
-              style={styles.chip}
-            />
-          ))}
+        <TemplatePicker
+          options={INVOICE_TEMPLATE_OPTIONS}
+          selectedId={settings.invoiceTemplate}
+          onSelect={(id) => void updateSettings({ invoiceTemplate: id as InvoiceTemplate })}
+        />
+        <View style={styles.previewWrap}>
+          <DocumentPreview html={previewHtml} />
         </View>
       </Card>
 
@@ -133,12 +130,11 @@ export default function SettingsScreen() {
           Accvo v1.0.0 — AI-powered business assistant for small service businesses.
         </Text>
       </Card>
-    </ScrollView>
+    </KeyboardAwareScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   content: { padding: spacing.md, paddingBottom: spacing.xl },
   subtitle: { fontSize: typography.sm, marginBottom: spacing.md },
   section: { marginBottom: spacing.md },
@@ -147,6 +143,6 @@ const styles = StyleSheet.create({
   fieldHint: { fontSize: typography.sm, marginBottom: spacing.sm, lineHeight: 20 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
   chip: { paddingHorizontal: spacing.md, minWidth: 72 },
-  templateList: { gap: spacing.sm, marginBottom: spacing.sm },
+  previewWrap: { height: 420, marginTop: spacing.sm },
   planText: { fontSize: typography.sm, lineHeight: 20 },
 });

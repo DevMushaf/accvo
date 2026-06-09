@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
+import { KeyboardAwareScreen } from '@/components/KeyboardAwareScreen';
 import { useTheme } from '@/providers/ThemeProvider';
 import { createCustomer } from '@/services/customerRepository';
 import { spacing } from '@/theme';
@@ -35,10 +36,9 @@ export default function CreateCustomerScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScreen
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
     >
       <Input label="Name *" value={name} onChangeText={setName} placeholder="John Smith" autoFocus />
       <Input label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
@@ -52,7 +52,7 @@ export default function CreateCustomerScreen() {
         style={{ minHeight: 80, textAlignVertical: 'top' }}
       />
       <Button title="Save customer" onPress={handleSave} loading={loading} />
-    </ScrollView>
+    </KeyboardAwareScreen>
   );
 }
 

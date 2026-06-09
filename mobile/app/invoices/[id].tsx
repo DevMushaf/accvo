@@ -7,7 +7,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { StatusChip } from '@/components/StatusChip';
 import { useTheme } from '@/providers/ThemeProvider';
-import { deleteInvoice, getInvoiceById, updateInvoice } from '@/services/invoiceRepository';
+import { deleteInvoice, duplicateInvoice, getInvoiceById, updateInvoice } from '@/services/invoiceRepository';
 import { exportAndShareInvoice } from '@/services/pdfService';
 import { useSettingsStore } from '@/store/settingsStore';
 import { fontFamily, spacing, typography } from '@/theme';
@@ -53,6 +53,16 @@ export default function InvoiceDetailScreen() {
     if (!invoice) return;
     const updated = await updateInvoice(invoice.id, { status });
     if (updated) setInvoice(updated);
+  }
+
+  async function handleDuplicate() {
+    if (!invoice) return;
+    const copy = await duplicateInvoice(invoice.id);
+    if (copy) {
+      router.push(`/invoices/${copy.id}`);
+    } else {
+      Alert.alert('Error', 'Could not duplicate invoice.');
+    }
   }
 
   async function handleDelete() {
@@ -152,6 +162,12 @@ export default function InvoiceDetailScreen() {
       </Card>
 
       <Button title="Edit invoice" variant="secondary" onPress={() => router.push(`/invoices/edit/${invoice.id}`)} />
+      <Button title="Duplicate invoice" variant="secondary" onPress={() => void handleDuplicate()} />
+      <Button
+        title="Preview PDF"
+        variant="secondary"
+        onPress={() => router.push(`/invoices/preview/${invoice.id}`)}
+      />
       <Button title="Share PDF" onPress={handleShare} loading={sharing} />
       {settings.subscriptionTier === 'free' ? (
         <Text style={[styles.watermarkNote, { color: colors.textSecondary }]}>

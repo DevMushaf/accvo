@@ -1,11 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Input } from '@/components/Input';
+import { KeyboardAwareScreen } from '@/components/KeyboardAwareScreen';
 import { useTheme } from '@/providers/ThemeProvider';
 import { deleteCustomer, getCustomerById, updateCustomer } from '@/services/customerRepository';
 import { fontFamily, spacing, typography } from '@/theme';
@@ -76,10 +77,9 @@ export default function CustomerDetailScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScreen
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
     >
       <Card>
         <Text style={[styles.created, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
@@ -103,7 +103,7 @@ export default function CustomerDetailScreen() {
       <View style={{ marginTop: spacing.sm }}>
         <Button title="Delete customer" variant="danger" onPress={handleDelete} />
       </View>
-    </ScrollView>
+    </KeyboardAwareScreen>
   );
 }
 
