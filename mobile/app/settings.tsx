@@ -7,6 +7,8 @@ import { Input } from '@/components/Input';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useSettingsStore } from '@/store/settingsStore';
 import { fontFamily, spacing, typography } from '@/theme';
+import { INVOICE_TEMPLATE_OPTIONS } from '@/types/invoiceTemplate';
+import type { InvoiceTemplate } from '@/types/invoiceTemplate';
 import { SUPPORTED_CURRENCIES } from '@/utils/currency';
 import type { ThemeMode } from '@/theme/colors';
 
@@ -69,6 +71,28 @@ export default function SettingsScreen() {
 
       <Card style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
+          Invoice PDF template
+        </Text>
+        <Text style={[styles.fieldHint, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
+          Choose how your shared invoice PDFs look.
+        </Text>
+        <View style={styles.templateList}>
+          {INVOICE_TEMPLATE_OPTIONS.map((option) => (
+            <Button
+              key={option.id}
+              title={option.label}
+              variant={settings.invoiceTemplate === option.id ? 'primary' : 'secondary'}
+              onPress={() => void updateSettings({ invoiceTemplate: option.id as InvoiceTemplate })}
+            />
+          ))}
+        </View>
+        <Text style={[styles.fieldHint, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
+          {INVOICE_TEMPLATE_OPTIONS.find((o) => o.id === settings.invoiceTemplate)?.description}
+        </Text>
+      </Card>
+
+      <Card style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
           Appearance
         </Text>
         <View style={styles.chipRow}>
@@ -120,7 +144,9 @@ const styles = StyleSheet.create({
   section: { marginBottom: spacing.md },
   sectionTitle: { fontSize: typography.base, marginBottom: spacing.sm },
   fieldLabel: { fontSize: typography.sm, marginBottom: spacing.xs },
+  fieldHint: { fontSize: typography.sm, marginBottom: spacing.sm, lineHeight: 20 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
   chip: { paddingHorizontal: spacing.md, minWidth: 72 },
+  templateList: { gap: spacing.sm, marginBottom: spacing.sm },
   planText: { fontSize: typography.sm, lineHeight: 20 },
 });

@@ -16,6 +16,19 @@ Accvo helps freelancers, service providers, and small agencies create invoices, 
 - Multi-currency support
 - Tax calculations
 - Dark mode
+- Invoice edit, due dates, and notes on detail screen
+- 3 PDF templates (Classic, Minimal, Modern) — choose in Settings
+- First-launch onboarding (business name & currency)
+- Slide-out hamburger menu → Settings
+
+### Build standalone APK (EAS)
+
+```bash
+cd mobile
+npx eas build --platform android --profile preview
+```
+
+For local dev build: `npx expo run:android` (USB device required).
 
 ### Coming soon
 

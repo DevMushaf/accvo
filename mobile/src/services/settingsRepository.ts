@@ -16,7 +16,13 @@ export async function getSettings(): Promise<AppSettings> {
   }
 
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(row.value) };
+    const parsed = JSON.parse(row.value) as Partial<AppSettings>;
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      // Existing installs before onboarding: skip welcome screen
+      hasSeenOnboarding: parsed.hasSeenOnboarding ?? true,
+    };
   } catch {
     return { ...DEFAULT_SETTINGS };
   }

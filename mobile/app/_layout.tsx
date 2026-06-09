@@ -40,6 +40,7 @@ function NavigationStack() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="invoices/create" options={{ title: 'New Invoice', presentation: 'modal' }} />
+        <Stack.Screen name="invoices/edit/[id]" options={{ title: 'Edit Invoice' }} />
         <Stack.Screen name="invoices/[id]" options={{ title: 'Invoice' }} />
         <Stack.Screen name="customers/create" options={{ title: 'New Customer', presentation: 'modal' }} />
         <Stack.Screen name="customers/[id]" options={{ title: 'Customer' }} />

@@ -49,6 +49,18 @@ Implementation: `mobile/src/theme/colors.ts`
 | `HeaderMenuButton` | Top-left hamburger → opens slide-out menu |
 | `AppMenuDrawer` | Slide-out menu panel (Settings, Upgrade) |
 
+## Invoice PDF templates
+
+Users choose a default template in Settings. Applied to all shared PDFs.
+
+| Template | Style |
+|----------|--------|
+| **Classic** | Accvo blue header, light blue table header (default) |
+| **Minimal** | Serif type, black rules, lots of whitespace |
+| **Modern** | Blue header band with accent stripe, card-style table |
+
+Implementation: `mobile/src/services/pdf/invoicePdfTemplates.ts`
+
 ## Navigation
 
 - **Bottom tabs:** Home (business name in header), Invoices, Customers

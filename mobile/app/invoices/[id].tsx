@@ -91,9 +91,21 @@ export default function InvoiceDetailScreen() {
           <StatusChip status={invoice.status} />
         </View>
         <Text style={{ color: colors.textSecondary, fontFamily: fontFamily.regular }}>
-          {invoice.customerName ?? 'No customer'} · {formatDisplayDate(invoice.issueDate)}
+          {invoice.customerName ?? 'No customer'} · Issued {formatDisplayDate(invoice.issueDate)}
+          {invoice.dueDate ? ` · Due ${formatDisplayDate(invoice.dueDate)}` : ''}
         </Text>
       </Card>
+
+      {invoice.notes ? (
+        <Card>
+          <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
+            Notes
+          </Text>
+          <Text style={{ color: colors.textSecondary, fontFamily: fontFamily.regular, lineHeight: 20 }}>
+            {invoice.notes}
+          </Text>
+        </Card>
+      ) : null}
 
       <Card style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
@@ -139,6 +151,7 @@ export default function InvoiceDetailScreen() {
         </View>
       </Card>
 
+      <Button title="Edit invoice" variant="secondary" onPress={() => router.push(`/invoices/edit/${invoice.id}`)} />
       <Button title="Share PDF" onPress={handleShare} loading={sharing} />
       {settings.subscriptionTier === 'free' ? (
         <Text style={[styles.watermarkNote, { color: colors.textSecondary }]}>

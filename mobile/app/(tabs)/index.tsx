@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { InvoiceCard } from '@/components/InvoiceCard';
+import { OnboardingModal } from '@/components/OnboardingModal';
 import { useTheme } from '@/providers/ThemeProvider';
 import { getDashboardStats, getRecentInvoices } from '@/services/invoiceRepository';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -17,6 +18,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const settings = useSettingsStore((s) => s.settings);
+  const isSettingsLoaded = useSettingsStore((s) => s.isLoaded);
   const [stats, setStats] = useState({
     totalIncome: 0,
     paidCount: 0,
@@ -26,6 +28,13 @@ export default function DashboardScreen() {
   });
   const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (isSettingsLoaded && !settings.hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
+  }, [isSettingsLoaded, settings.hasSeenOnboarding]);
 
   const loadData = useCallback(async () => {
     const [dashboardStats, recent] = await Promise.all([
@@ -49,6 +58,8 @@ export default function DashboardScreen() {
   }
 
   return (
+    <>
+    <OnboardingModal visible={showOnboarding} onComplete={() => setShowOnboarding(false)} />
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
@@ -96,6 +107,7 @@ export default function DashboardScreen() {
         <Button title="New invoice" onPress={() => router.push('/invoices/create')} />
       </View>
     </ScrollView>
+    </>
   );
 }
 
