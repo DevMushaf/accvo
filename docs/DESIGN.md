@@ -126,3 +126,18 @@ Minimum 48dp height for buttons and inputs.
 ## PDF (free tier)
 
 Footer watermark: *"Created with Accvo — Upgrade to Pro to remove this watermark"*
+
+## AI features (Phase 3 — planned)
+
+- **Accent color** `#3B9BFF` for AI actions, sparkle badge, and “Generate with AI” buttons
+- **Free tier:** Show AI entry points on invoice create/edit; display remaining monthly uses (e.g. “12 AI assists left”)
+- **Pro tier:** No usage badge; unlock voice input and advanced pricing UI
+- **UX rule:** AI never auto-saves — user always reviews and confirms before persisting to SQLite
+
+## Freemium positioning
+
+| Free | Pro |
+|------|-----|
+| Core invoicing + local analytics + **limited AI** | Unlimited AI + no watermark + cloud sync |
+
+AI on free is a **growth feature**, not a paywall — Pro sells convenience, scale, and business polish.

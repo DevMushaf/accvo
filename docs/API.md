@@ -84,11 +84,23 @@ Collections will mirror SQLite tables under `users/{uid}/`:
 
 ### Cloud Functions (planned)
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `createPaymentLink` | POST | Stripe payment link for invoice |
-| `generateInvoiceFromText` | POST | OpenAI → structured invoice |
-| `suggestPricing` | POST | AI pricing suggestion |
-| `sendReminder` | Scheduled | FCM for unpaid invoices |
+| Endpoint | Method | Free tier | Pro |
+|----------|--------|-----------|-----|
+| `generateInvoiceFromText` | POST | Yes (limited/month) | Unlimited |
+| `improveLineItemText` | POST | Yes (limited/month) | Unlimited |
+| `suggestPricing` | POST | Basic suggestions | Advanced |
+| `voiceToInvoice` | POST | — | Yes |
+| `createPaymentLink` | POST | — | Stripe link for invoice |
+| `sendReminder` | Scheduled | — | FCM for unpaid invoices |
 
-Request/response schemas will be added when Phase 2 is implemented.
+All AI endpoints enforce **server-side rate limits** by `subscriptionTier` and monthly usage. Guests use device-scoped counters in local settings until sign-in.
+
+### Settings fields (planned — AI usage)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `aiCreditsUsedThisMonth` | number | Resets monthly |
+| `aiCreditsMonthKey` | string | e.g. `2026-06` |
+| `subscriptionTier` | `free` \| `pro` | Already in app settings |
+
+Request/response schemas will be added when Phase 2/3 is implemented.

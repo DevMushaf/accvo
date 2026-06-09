@@ -48,7 +48,7 @@ For local dev build: `npx expo run:android` (USB device required).
 ### Coming soon
 
 - **Phase 2:** Pro sign-up, cloud sync, Firebase auth, Stripe payment links
-- **Phase 3:** AI invoice generation, voice input, smart pricing
+- **Phase 3:** AI features — **included in free tier** (monthly limits) + unlimited/advanced AI on Pro
 - **Phase 4:** Scheduling, expenses, push notifications
 
 ## Tech stack
@@ -99,15 +99,32 @@ npm run build:android
 
 ## Freemium model
 
-| Free | Pro (Phase 2+) |
-|------|----------------|
+**Strategy:** Keep core invoicing and a **generous free AI tier** so more people try and share Accvo. Pro monetizes power users, sync, and removing friction (watermark, limits).
+
+| Free | Pro |
+|------|-----|
 | Unlimited invoices | No PDF watermark |
 | Local analytics dashboard | Cloud backup & sync |
-| Recurring invoices | AI features |
-| Basic PDF + share | Stripe links, reminders |
-| Accvo watermark on PDF | Priority support |
+| Recurring invoices | **Unlimited AI** |
+| **AI included** (monthly limits — see below) | Voice → invoice |
+| PDF export + share (watermark) | Advanced pricing & reminders |
+| Guest mode, no account required | Stripe payment links |
 
-No account required for free tier. Sign-up only when upgrading to Pro.
+### AI (free vs Pro)
+
+AI runs via **Cloud Functions** (OpenAI keys never on device). Free users get real AI value; Pro removes caps and unlocks advanced flows.
+
+| Capability | Free | Pro |
+|------------|------|-----|
+| Draft invoice from short prompt | Yes (monthly limit) | Unlimited |
+| Improve line-item wording | Yes (monthly limit) | Unlimited |
+| Basic smart suggestions | Yes | Unlimited |
+| Voice → invoice | — | Yes |
+| Advanced pricing insights | — | Yes |
+
+**Planned free limits (tunable):** e.g. ~15–20 AI-assisted actions per month per device/account — enough for regular freelancers, not enough for heavy agency use.
+
+No account required for free tier. Sign-in optional until cloud sync or Pro upgrade.
 
 ## Documentation
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Accvo is a **local-first** mobile app. Phase 1 stores all data on-device in SQLite. Firebase and authentication are introduced in Phase 2 when users upgrade to Pro or need cloud-backed features.
+Accvo is a **local-first** mobile app. Phase 1 stores all data on-device in SQLite. Firebase, authentication, and AI backends are introduced in Phase 2+. **AI is available on the free tier** with monthly limits; Pro removes caps and adds advanced AI (voice, pricing).
 
 ## System diagram
 
@@ -21,10 +21,11 @@ Accvo is a **local-first** mobile app. Phase 1 stores all data on-device in SQLi
 │              │  expo-sqlite    │  │
 │              └─────────────────┘  │
 └─────────────────────────────────────┘
-         ↓ (Phase 2 — Pro only)
+         ↓ (Phase 2+ — network optional)
 ┌─────────────────────────────────────┐
 │  Firebase Auth + Firestore + CF     │
-│  OpenAI · Stripe · FCM              │
+│  OpenAI (free + Pro tiers)          │
+│  Stripe · FCM (Pro)                 │
 └─────────────────────────────────────┘
 ```
 
@@ -53,6 +54,16 @@ Accvo is a **local-first** mobile app. Phase 1 stores all data on-device in SQLi
 - All Phase 1 data lives in `accvo.db` (SQLite)
 - No network required
 - Phase 2 Pro migration: one-time upload of local data to Firestore on first sign-up
+
+## AI architecture (Phase 3 — planned)
+
+1. Mobile sends prompt + context (line items, customer name) to a Cloud Function
+2. Function checks **tier + monthly usage** (free limit vs Pro unlimited)
+3. OpenAI returns structured invoice JSON or text suggestions
+4. Mobile applies result locally to SQLite (user confirms before save)
+5. Usage counter stored in Firestore (signed-in) or device settings (guest)
+
+**Cost control:** Rate limits on free tier; no raw API keys on device.
 
 ## Security (Phase 2+)
 
