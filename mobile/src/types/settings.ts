@@ -7,6 +7,8 @@ import type { ThemeMode } from '@/theme/colors';
 export type SubscriptionTier = 'free' | 'pro';
 export type AuthMode = 'none' | 'guest' | 'signed_in';
 
+export type BusinessLogoShape = 'square' | 'wide';
+
 export interface AppSettings {
   businessName: string;
   businessTagline: string;
@@ -14,7 +16,9 @@ export interface AppSettings {
   businessPhone: string;
   businessWebsite: string;
   businessAddress: string;
+  paymentNote: string;
   businessLogoUri: string | null;
+  businessLogoShape: BusinessLogoShape;
   showLogoOnInvoice: boolean;
   showLogoOnBusinessCard: boolean;
   defaultCurrency: string;
@@ -35,7 +39,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   businessPhone: '',
   businessWebsite: '',
   businessAddress: '',
+  paymentNote: '',
   businessLogoUri: null,
+  businessLogoShape: 'square',
   showLogoOnInvoice: false,
   showLogoOnBusinessCard: false,
   defaultCurrency: 'USD',

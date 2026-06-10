@@ -1,13 +1,26 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 
+import type { BusinessLogoShape } from '@/types/settings';
+
 const LOGO_FILENAME = 'business-logo.jpg';
+const WIDE_ASPECT_THRESHOLD = 1.4;
 
 function getLogoPath(): string {
   return `${FileSystem.documentDirectory}${LOGO_FILENAME}`;
 }
 
-export async function pickAndSaveBusinessLogo(): Promise<string | null> {
+export function detectLogoShape(width: number, height: number): BusinessLogoShape {
+  if (height <= 0) return 'square';
+  return width / height > WIDE_ASPECT_THRESHOLD ? 'wide' : 'square';
+}
+
+export interface PickLogoResult {
+  uri: string;
+  shape: BusinessLogoShape;
+}
+
+export async function pickAndSaveBusinessLogo(): Promise<PickLogoResult | null> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
     throw new Error('Photo library permission is required to add a logo.');
@@ -16,7 +29,7 @@ export async function pickAndSaveBusinessLogo(): Promise<string | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
     allowsEditing: true,
-    aspect: [1, 1],
+    aspect: [3, 1],
     quality: 0.85,
   });
 
@@ -24,9 +37,12 @@ export async function pickAndSaveBusinessLogo(): Promise<string | null> {
     return null;
   }
 
+  const asset = result.assets[0];
   const destination = getLogoPath();
-  await FileSystem.copyAsync({ from: result.assets[0].uri, to: destination });
-  return destination;
+  await FileSystem.copyAsync({ from: asset.uri, to: destination });
+
+  const shape = detectLogoShape(asset.width ?? 0, asset.height ?? 0);
+  return { uri: destination, shape };
 }
 
 export async function getBusinessLogoDataUri(logoUri: string | null): Promise<string | null> {

@@ -23,6 +23,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   updateSettings: async (partial) => {
     const next = { ...get().settings, ...partial };
     set({ settings: next });
-    await saveSettings(next);
+    try {
+      await saveSettings(next);
+    } catch {
+      const settings = await getSettings();
+      set({ settings });
+    }
   },
 }));

@@ -1,5 +1,6 @@
 import { createInvoice } from '@/services/invoiceRepository';
-import { getDatabase } from '@/services/localDb';
+import { withDatabase } from '@/services/localDb';
+import type * as SQLite from 'expo-sqlite';
 import type { Invoice } from '@/types/invoice';
 import type {
   CreateRecurringInvoiceInput,
@@ -9,6 +10,12 @@ import type {
 } from '@/types/recurringInvoice';
 import { advanceRecurringDate } from '@/utils/recurringDates';
 import { generateId, toISODate } from '@/utils/dates';
+
+const RECURRING_SELECT = `
+  SELECT r.*, c.name as customerName
+  FROM recurring_invoices r
+  LEFT JOIN customers c ON r.customerId = c.id
+`;
 
 function mapLineItem(row: Record<string, unknown>): RecurringLineItem {
   return {
@@ -39,8 +46,10 @@ function mapRecurring(row: Record<string, unknown>, lineItems: RecurringLineItem
   };
 }
 
-async function getLineItems(recurringInvoiceId: string): Promise<RecurringLineItem[]> {
-  const db = await getDatabase();
+async function getLineItems(
+  db: SQLite.SQLiteDatabase,
+  recurringInvoiceId: string,
+): Promise<RecurringLineItem[]> {
   const rows = await db.getAllAsync(
     'SELECT * FROM recurring_line_items WHERE recurringInvoiceId = ? ORDER BY sortOrder ASC',
     recurringInvoiceId,
@@ -48,104 +57,87 @@ async function getLineItems(recurringInvoiceId: string): Promise<RecurringLineIt
   return rows.map((row) => mapLineItem(row as Record<string, unknown>));
 }
 
-async function hydrate(row: Record<string, unknown>): Promise<RecurringInvoice> {
-  const lineItems = await getLineItems(row.id as string);
+async function getLineItemsForRecurringInvoices(
+  db: SQLite.SQLiteDatabase,
+  recurringInvoiceIds: string[],
+): Promise<Map<string, RecurringLineItem[]>> {
+  const grouped = new Map<string, RecurringLineItem[]>();
+  if (recurringInvoiceIds.length === 0) return grouped;
+
+  const placeholders = recurringInvoiceIds.map(() => '?').join(', ');
+  const rows = await db.getAllAsync(
+    `SELECT * FROM recurring_line_items WHERE recurringInvoiceId IN (${placeholders}) ORDER BY sortOrder ASC`,
+    ...recurringInvoiceIds,
+  );
+
+  for (const row of rows) {
+    const item = mapLineItem(row as Record<string, unknown>);
+    const list = grouped.get(item.recurringInvoiceId) ?? [];
+    list.push(item);
+    grouped.set(item.recurringInvoiceId, list);
+  }
+
+  return grouped;
+}
+
+async function hydrateRecurring(
+  db: SQLite.SQLiteDatabase,
+  row: Record<string, unknown>,
+): Promise<RecurringInvoice> {
+  const lineItems = await getLineItems(db, row.id as string);
   return mapRecurring(row, lineItems);
 }
 
+function hydrateRecurringInvoices(
+  rows: Record<string, unknown>[],
+  lineItemsByRecurring: Map<string, RecurringLineItem[]>,
+): RecurringInvoice[] {
+  return rows.map((row) =>
+    mapRecurring(row, lineItemsByRecurring.get(row.id as string) ?? []),
+  );
+}
+
 export async function getAllRecurringInvoices(): Promise<RecurringInvoice[]> {
-  const db = await getDatabase();
-  const rows = await db.getAllAsync(`
-    SELECT r.*, c.name as customerName
-    FROM recurring_invoices r
-    LEFT JOIN customers c ON r.customerId = c.id
-    ORDER BY r.nextIssueDate ASC
-  `);
-  return Promise.all(rows.map((row) => hydrate(row as Record<string, unknown>)));
+  return withDatabase(async (db) => {
+    const rows = await db.getAllAsync(`${RECURRING_SELECT} ORDER BY r.nextIssueDate ASC`);
+    const typedRows = rows as Record<string, unknown>[];
+    const lineItemsByRecurring = await getLineItemsForRecurringInvoices(
+      db,
+      typedRows.map((row) => row.id as string),
+    );
+    return hydrateRecurringInvoices(typedRows, lineItemsByRecurring);
+  });
 }
 
 export async function getRecurringInvoiceById(id: string): Promise<RecurringInvoice | null> {
-  const db = await getDatabase();
-  const row = await db.getFirstAsync(
-    `SELECT r.*, c.name as customerName
-     FROM recurring_invoices r
-     LEFT JOIN customers c ON r.customerId = c.id
-     WHERE r.id = ?`,
-    id,
-  );
-  return row ? hydrate(row as Record<string, unknown>) : null;
+  return withDatabase(async (db) => {
+    const row = await db.getFirstAsync(`${RECURRING_SELECT} WHERE r.id = ?`, id);
+    return row ? hydrateRecurring(db, row as Record<string, unknown>) : null;
+  });
 }
 
 export async function createRecurringInvoice(input: CreateRecurringInvoiceInput): Promise<RecurringInvoice> {
-  const db = await getDatabase();
-  const now = new Date().toISOString();
-  const id = generateId();
+  return withDatabase(async (db) => {
+    const now = new Date().toISOString();
+    const id = generateId();
 
-  await db.runAsync(
-    `INSERT INTO recurring_invoices (
-      id, name, customerId, frequency, nextIssueDate, currency, taxRate, notes, isActive, createdAt, updatedAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    id,
-    input.name.trim(),
-    input.customerId ?? null,
-    input.frequency,
-    input.nextIssueDate,
-    input.currency ?? 'USD',
-    input.taxRate ?? 0,
-    input.notes?.trim() || null,
-    input.isActive === false ? 0 : 1,
-    now,
-    now,
-  );
-
-  for (let i = 0; i < input.lineItems.length; i++) {
-    const item = input.lineItems[i];
     await db.runAsync(
-      `INSERT INTO recurring_line_items (id, recurringInvoiceId, description, quantity, unitPrice, sortOrder)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      generateId(),
+      `INSERT INTO recurring_invoices (
+        id, name, customerId, frequency, nextIssueDate, currency, taxRate, notes, isActive, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
-      item.description.trim(),
-      item.quantity,
-      item.unitPrice,
-      i,
+      input.name.trim(),
+      input.customerId ?? null,
+      input.frequency,
+      input.nextIssueDate,
+      input.currency ?? 'USD',
+      input.taxRate ?? 0,
+      input.notes?.trim() || null,
+      input.isActive === false ? 0 : 1,
+      now,
+      now,
     );
-  }
 
-  const created = await getRecurringInvoiceById(id);
-  if (!created) throw new Error('Failed to create recurring invoice');
-  return created;
-}
-
-export async function updateRecurringInvoice(
-  id: string,
-  input: UpdateRecurringInvoiceInput,
-): Promise<RecurringInvoice | null> {
-  const existing = await getRecurringInvoiceById(id);
-  if (!existing) return null;
-
-  const db = await getDatabase();
-  const now = new Date().toISOString();
-
-  await db.runAsync(
-    `UPDATE recurring_invoices SET
-      name = ?, customerId = ?, frequency = ?, nextIssueDate = ?, currency = ?,
-      taxRate = ?, notes = ?, isActive = ?, updatedAt = ?
-     WHERE id = ?`,
-    input.name?.trim() ?? existing.name,
-    input.customerId !== undefined ? input.customerId : existing.customerId,
-    input.frequency ?? existing.frequency,
-    input.nextIssueDate ?? existing.nextIssueDate,
-    input.currency ?? existing.currency,
-    input.taxRate ?? existing.taxRate,
-    input.notes !== undefined ? input.notes?.trim() || null : existing.notes,
-    input.isActive !== undefined ? (input.isActive ? 1 : 0) : existing.isActive ? 1 : 0,
-    now,
-    id,
-  );
-
-  if (input.lineItems) {
-    await db.runAsync('DELETE FROM recurring_line_items WHERE recurringInvoiceId = ?', id);
     for (let i = 0; i < input.lineItems.length; i++) {
       const item = input.lineItems[i];
       await db.runAsync(
@@ -159,15 +151,68 @@ export async function updateRecurringInvoice(
         i,
       );
     }
-  }
 
-  return getRecurringInvoiceById(id);
+    const row = await db.getFirstAsync(`${RECURRING_SELECT} WHERE r.id = ?`, id);
+    if (!row) throw new Error('Failed to create recurring invoice');
+    return hydrateRecurring(db, row as Record<string, unknown>);
+  });
+}
+
+export async function updateRecurringInvoice(
+  id: string,
+  input: UpdateRecurringInvoiceInput,
+): Promise<RecurringInvoice | null> {
+  return withDatabase(async (db) => {
+    const existingRow = await db.getFirstAsync(`${RECURRING_SELECT} WHERE r.id = ?`, id);
+    if (!existingRow) return null;
+
+    const existing = await hydrateRecurring(db, existingRow as Record<string, unknown>);
+    const now = new Date().toISOString();
+
+    await db.runAsync(
+      `UPDATE recurring_invoices SET
+        name = ?, customerId = ?, frequency = ?, nextIssueDate = ?, currency = ?,
+        taxRate = ?, notes = ?, isActive = ?, updatedAt = ?
+       WHERE id = ?`,
+      input.name?.trim() ?? existing.name,
+      input.customerId !== undefined ? input.customerId : existing.customerId,
+      input.frequency ?? existing.frequency,
+      input.nextIssueDate ?? existing.nextIssueDate,
+      input.currency ?? existing.currency,
+      input.taxRate ?? existing.taxRate,
+      input.notes !== undefined ? input.notes?.trim() || null : existing.notes,
+      input.isActive !== undefined ? (input.isActive ? 1 : 0) : existing.isActive ? 1 : 0,
+      now,
+      id,
+    );
+
+    if (input.lineItems) {
+      await db.runAsync('DELETE FROM recurring_line_items WHERE recurringInvoiceId = ?', id);
+      for (let i = 0; i < input.lineItems.length; i++) {
+        const item = input.lineItems[i];
+        await db.runAsync(
+          `INSERT INTO recurring_line_items (id, recurringInvoiceId, description, quantity, unitPrice, sortOrder)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          generateId(),
+          id,
+          item.description.trim(),
+          item.quantity,
+          item.unitPrice,
+          i,
+        );
+      }
+    }
+
+    const row = await db.getFirstAsync(`${RECURRING_SELECT} WHERE r.id = ?`, id);
+    return row ? hydrateRecurring(db, row as Record<string, unknown>) : null;
+  });
 }
 
 export async function deleteRecurringInvoice(id: string): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync('DELETE FROM recurring_line_items WHERE recurringInvoiceId = ?', id);
-  await db.runAsync('DELETE FROM recurring_invoices WHERE id = ?', id);
+  await withDatabase(async (db) => {
+    await db.runAsync('DELETE FROM recurring_line_items WHERE recurringInvoiceId = ?', id);
+    await db.runAsync('DELETE FROM recurring_invoices WHERE id = ?', id);
+  });
 }
 
 export async function processDueRecurringInvoices(): Promise<Invoice[]> {

@@ -49,6 +49,15 @@ export function BusinessProfileFields({ draft, onChange }: BusinessProfileFields
         onChangeText={(v) => onChange('businessAddress', v)}
         placeholder="City, Country"
       />
+      <Input
+        label="Payment details (on invoices)"
+        value={draft.paymentNote}
+        onChangeText={(v) => onChange('paymentNote', v)}
+        placeholder="Bank account, PayPal, etc."
+        multiline
+        numberOfLines={3}
+        style={{ minHeight: 72, textAlignVertical: 'top' }}
+      />
     </>
   );
 }

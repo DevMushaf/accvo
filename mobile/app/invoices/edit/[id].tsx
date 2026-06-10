@@ -39,6 +39,7 @@ export default function EditInvoiceScreen() {
       submitLabel="Update invoice"
       initialValues={{
         customerId: invoice.customerId,
+        status: invoice.status,
         taxRate: invoice.taxRate,
         notes: invoice.notes ?? '',
         dueDate: invoice.dueDate ?? '',
@@ -51,13 +52,14 @@ export default function EditInvoiceScreen() {
       onSubmit={async (values) => {
         const updated = await updateInvoice(invoice.id, {
           customerId: values.customerId,
+          status: values.status,
           taxRate: values.taxRate,
           notes: values.notes,
           dueDate: values.dueDate,
           lineItems: values.lineItems,
         });
         if (updated) {
-          router.replace(`/invoices/${updated.id}`);
+          router.replace(`/invoices/preview/${updated.id}`);
         }
       }}
     />

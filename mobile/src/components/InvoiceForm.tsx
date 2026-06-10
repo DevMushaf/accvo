@@ -10,12 +10,13 @@ import { getAllCustomers } from '@/services/customerRepository';
 import { useSettingsStore } from '@/store/settingsStore';
 import { fontFamily, spacing, typography } from '@/theme';
 import type { Customer } from '@/types/customer';
-import type { CreateLineItemInput } from '@/types/invoice';
+import type { CreateLineItemInput, InvoiceStatus } from '@/types/invoice';
 import { formatCurrency } from '@/utils/currency';
 import { calculateInvoiceTotals } from '@/utils/tax';
 
 export interface InvoiceFormValues {
   customerId: string | null;
+  status: InvoiceStatus;
   taxRate: number;
   notes: string | null;
   dueDate: string | null;
@@ -28,11 +29,21 @@ interface InvoiceFormProps {
   onSubmit: (values: InvoiceFormValues) => Promise<void>;
 }
 
+const STATUS_OPTIONS: InvoiceStatus[] = ['draft', 'sent', 'paid', 'overdue'];
+
+const STATUS_LABELS: Record<InvoiceStatus, string> = {
+  draft: 'Draft',
+  sent: 'Sent',
+  paid: 'Paid',
+  overdue: 'Overdue',
+};
+
 export function InvoiceForm({ initialValues, submitLabel, onSubmit }: InvoiceFormProps) {
   const { colors } = useTheme();
   const settings = useSettingsStore((s) => s.settings);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerId, setCustomerId] = useState<string | null>(initialValues?.customerId ?? null);
+  const [status, setStatus] = useState<InvoiceStatus>(initialValues?.status ?? 'draft');
   const [taxRate, setTaxRate] = useState(
     String(initialValues?.taxRate ?? settings.defaultTaxRate),
   );
@@ -61,6 +72,7 @@ export function InvoiceForm({ initialValues, submitLabel, onSubmit }: InvoiceFor
     try {
       await onSubmit({
         customerId,
+        status,
         taxRate: parseFloat(taxRate) || 0,
         notes: notes.trim() || null,
         dueDate: dueDate.trim() || null,
@@ -96,6 +108,22 @@ export function InvoiceForm({ initialValues, submitLabel, onSubmit }: InvoiceFor
             variant={customerId === customer.id ? 'primary' : 'secondary'}
             fullWidth={false}
             onPress={() => setCustomerId(customer.id)}
+            style={styles.chip}
+          />
+        ))}
+      </View>
+
+      <Text style={[styles.label, { color: colors.text, fontFamily: fontFamily.medium }]}>
+        Status
+      </Text>
+      <View style={styles.chipRow}>
+        {STATUS_OPTIONS.map((option) => (
+          <Button
+            key={option}
+            title={STATUS_LABELS[option]}
+            variant={status === option ? 'primary' : 'secondary'}
+            fullWidth={false}
+            onPress={() => setStatus(option)}
             style={styles.chip}
           />
         ))}

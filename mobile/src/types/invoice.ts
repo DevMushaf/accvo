@@ -14,6 +14,8 @@ export interface Invoice {
   invoiceNumber: string;
   customerId: string | null;
   customerName?: string | null;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
   status: InvoiceStatus;
   issueDate: string;
   dueDate: string | null;

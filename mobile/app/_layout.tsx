@@ -51,11 +51,12 @@ function NavigationStack() {
         <Stack.Screen name="invoices/create" options={{ title: 'New Invoice', presentation: 'modal' }} />
         <Stack.Screen name="invoices/edit/[id]" options={{ title: 'Edit Invoice' }} />
         <Stack.Screen name="invoices/[id]" options={{ title: 'Invoice' }} />
-        <Stack.Screen name="invoices/preview/[id]" options={{ title: 'Invoice Preview' }} />
+        <Stack.Screen name="invoices/preview/[id]" options={{ title: 'Invoice' }} />
         <Stack.Screen name="business-card/index" options={{ title: 'Business Card' }} />
         <Stack.Screen name="customers/create" options={{ title: 'New Customer', presentation: 'modal' }} />
         <Stack.Screen name="customers/[id]" options={{ title: 'Customer' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="analytics/index" options={{ title: 'Analytics' }} />
         <Stack.Screen name="recurring/index" options={{ title: 'Recurring Invoices' }} />
         <Stack.Screen name="recurring/create" options={{ title: 'New Recurring Invoice', presentation: 'modal' }} />
         <Stack.Screen name="recurring/[id]" options={{ title: 'Recurring Invoice' }} />

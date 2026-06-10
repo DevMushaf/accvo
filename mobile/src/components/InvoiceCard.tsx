@@ -19,7 +19,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
   const { colors } = useTheme();
 
   return (
-    <Pressable onPress={() => router.push(`/invoices/${invoice.id}`)}>
+    <Pressable onPress={() => router.push(`/invoices/preview/${invoice.id}`)}>
       <Card style={styles.card}>
         <View style={styles.header}>
           <Text style={[styles.number, { color: colors.text, fontFamily: fontFamily.semibold }]}>

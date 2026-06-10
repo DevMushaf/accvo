@@ -8,6 +8,8 @@ export function createSampleInvoice(settings: AppSettings): Invoice {
     invoiceNumber: 'INV-0001',
     customerId: null,
     customerName: 'Jane Smith',
+    customerEmail: 'jane@example.com',
+    customerPhone: '+1 555 0100',
     status: 'sent',
     issueDate: now.slice(0, 10),
     dueDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),

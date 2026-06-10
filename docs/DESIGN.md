@@ -57,12 +57,15 @@ Users choose a default template in Settings. Applied to all shared PDFs.
 
 | Template | Style |
 |----------|--------|
-| **Classic** | Accvo blue header, light blue table header (default) |
-| **Minimal** | Serif type, black rules, lots of whitespace |
-| **Modern** | Blue header band with accent stripe, card-style table |
-| **Elegant** | Refined serif layout with subtle accents |
+| **Corporate** | Teal geometric header, structured table, contact footer bar (default) |
+| **Bold** | Navy header with accent stripe, split table header, zebra rows |
+| **Rounded** | Rounded header card, pill-shaped table rows |
+| **Vivid** | Purple header, orange total bar, creative layout |
+| **Studio** | Curved accents, account-due box, wave footer |
 
-Implementation: `mobile/src/services/pdf/invoicePdfTemplates.ts`
+Legacy template IDs (`classic`, `modern`, `elegant`, `minimal`) migrate automatically on load.
+
+Implementation: `mobile/src/services/pdf/invoicePdfTemplates.ts`, shared blocks in `pdfHtmlUtils.ts`
 
 ## Recurring invoices
 

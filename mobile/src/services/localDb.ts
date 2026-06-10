@@ -1,6 +1,8 @@
 import * as SQLite from 'expo-sqlite';
 
 let db: SQLite.SQLiteDatabase | null = null;
+let initPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+let opChain: Promise<unknown> = Promise.resolve();
 
 const SCHEMA = `
   PRAGMA foreign_keys = ON;
@@ -74,14 +76,53 @@ const SCHEMA = `
   );
 `;
 
-export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
-  if (!db) {
-    db = await SQLite.openDatabaseAsync('accvo.db');
-    await db.execAsync(SCHEMA);
+async function openDatabase(): Promise<SQLite.SQLiteDatabase> {
+  const instance = await SQLite.openDatabaseAsync('accvo.db');
+  await instance.execAsync(SCHEMA);
+  await instance.execAsync('PRAGMA journal_mode = WAL;');
+  await instance.execAsync('PRAGMA busy_timeout = 5000;');
+  return instance;
+}
+
+async function ensureDatabase(): Promise<SQLite.SQLiteDatabase> {
+  if (db) return db;
+  if (!initPromise) {
+    initPromise = openDatabase().then((instance) => {
+      db = instance;
+      return instance;
+    });
   }
-  return db;
+  return initPromise;
+}
+
+/** Serialize DB access — prevents "database is locked" on Android. */
+export function withDatabase<T>(fn: (database: SQLite.SQLiteDatabase) => Promise<T>): Promise<T> {
+  const op = opChain.then(() => ensureDatabase()).then((database) => fn(database));
+  opChain = op.then(
+    () => undefined,
+    () => undefined,
+  );
+  return op;
+}
+
+/** Clears cached connection (closes first when possible). Use after Fast Refresh in dev. */
+export async function resetDatabaseCache(): Promise<void> {
+  if (db) {
+    try {
+      await db.closeAsync();
+    } catch {
+      // Native handle may already be invalid after reload.
+    }
+  }
+  db = null;
+  initPromise = null;
+  opChain = Promise.resolve();
+}
+
+export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
+  return ensureDatabase();
 }
 
 export async function initDatabase(): Promise<void> {
-  await getDatabase();
+  await withDatabase(async () => undefined);
 }

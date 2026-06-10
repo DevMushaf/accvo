@@ -19,9 +19,9 @@ export default function CreateInvoiceScreen() {
           notes: values.notes,
           dueDate: values.dueDate,
           lineItems: values.lineItems,
-          status: 'draft',
+          status: values.status,
         });
-        router.replace(`/invoices/${invoice.id}`);
+        router.replace(`/invoices/preview/${invoice.id}`);
       }}
     />
   );

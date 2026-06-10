@@ -1,6 +1,8 @@
-import { getDatabase } from '@/services/localDb';
+import { withDatabase } from '@/services/localDb';
 import type { AppSettings, AuthMode } from '@/types/settings';
 import { DEFAULT_SETTINGS } from '@/types/settings';
+import { migrateInvoiceTemplate } from '@/types/invoiceTemplate';
+import type * as SQLite from 'expo-sqlite';
 
 const SETTINGS_KEY = 'app_settings';
 
@@ -23,46 +25,53 @@ function migrateSettings(parsed: LegacySettings): AppSettings {
     authMode,
     hasSeenWelcome: parsed.hasSeenWelcome ?? hadLegacyOnboarding ?? false,
     hasDismissedGuestBanner: parsed.hasDismissedGuestBanner ?? false,
+    paymentNote: parsed.paymentNote ?? '',
+    businessLogoShape: parsed.businessLogoShape ?? 'square',
+    invoiceTemplate: migrateInvoiceTemplate(parsed.invoiceTemplate as string | undefined),
   };
 }
 
 export async function getSettings(): Promise<AppSettings> {
-  const db = await getDatabase();
-  const row = await db.getFirstAsync<{ value: string }>(
-    'SELECT value FROM settings WHERE key = ?',
-    SETTINGS_KEY,
-  );
+  return withDatabase(async (db) => {
+    const row = await db.getFirstAsync<{ value: string }>(
+      'SELECT value FROM settings WHERE key = ?',
+      SETTINGS_KEY,
+    );
 
-  if (!row?.value) {
-    return { ...DEFAULT_SETTINGS };
-  }
-
-  try {
-    const parsed = JSON.parse(row.value) as LegacySettings;
-    const migrated = migrateSettings(parsed);
-
-    // Existing installs before welcome screen: skip welcome once
-    if (parsed.hasSeenWelcome === undefined && parsed.hasSeenOnboarding === undefined) {
-      return { ...migrated, hasSeenWelcome: true, authMode: migrated.authMode === 'none' ? 'guest' : migrated.authMode };
+    if (!row?.value) {
+      return { ...DEFAULT_SETTINGS };
     }
 
-    return migrated;
-  } catch {
-    return { ...DEFAULT_SETTINGS };
-  }
+    try {
+      const parsed = JSON.parse(row.value) as LegacySettings;
+      const migrated = migrateSettings(parsed);
+
+      if (parsed.hasSeenWelcome === undefined && parsed.hasSeenOnboarding === undefined) {
+        return {
+          ...migrated,
+          hasSeenWelcome: true,
+          authMode: migrated.authMode === 'none' ? 'guest' : migrated.authMode,
+        };
+      }
+
+      return migrated;
+    } catch {
+      return { ...DEFAULT_SETTINGS };
+    }
+  });
 }
 
 export async function saveSettings(settings: AppSettings): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync(
-    'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
-    SETTINGS_KEY,
-    JSON.stringify(settings),
-  );
+  await withDatabase(async (db) => {
+    await db.runAsync(
+      'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+      SETTINGS_KEY,
+      JSON.stringify(settings),
+    );
+  });
 }
 
-export async function getNextInvoiceNumber(): Promise<string> {
-  const db = await getDatabase();
+export async function getNextInvoiceNumber(db: SQLite.SQLiteDatabase): Promise<string> {
   const row = await db.getFirstAsync<{ value: string }>(
     'SELECT value FROM settings WHERE key = ?',
     'last_invoice_number',

@@ -1,21 +1,20 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
-import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { OverflowMenu } from '@/components/OverflowMenu';
 import { StatusChip } from '@/components/StatusChip';
 import { useTheme } from '@/providers/ThemeProvider';
-import { deleteInvoice, duplicateInvoice, getInvoiceById, updateInvoice } from '@/services/invoiceRepository';
+import { deleteInvoice, duplicateInvoice, getInvoiceById } from '@/services/invoiceRepository';
 import { exportAndShareInvoice } from '@/services/pdfService';
 import { useSettingsStore } from '@/store/settingsStore';
 import { fontFamily, spacing, typography } from '@/theme';
-import type { Invoice, InvoiceStatus } from '@/types/invoice';
+import type { Invoice } from '@/types/invoice';
 import { formatCurrency } from '@/utils/currency';
 import { formatDisplayDate } from '@/utils/dates';
-
-const STATUS_OPTIONS: InvoiceStatus[] = ['draft', 'sent', 'paid', 'overdue'];
 
 export default function InvoiceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,6 +23,7 @@ export default function InvoiceDetailScreen() {
   const settings = useSettingsStore((s) => s.settings);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const loadInvoice = useCallback(async () => {
     if (!id) return;
@@ -49,23 +49,17 @@ export default function InvoiceDetailScreen() {
     }
   }
 
-  async function handleStatusChange(status: InvoiceStatus) {
-    if (!invoice) return;
-    const updated = await updateInvoice(invoice.id, { status });
-    if (updated) setInvoice(updated);
-  }
-
   async function handleDuplicate() {
     if (!invoice) return;
     const copy = await duplicateInvoice(invoice.id);
     if (copy) {
-      router.push(`/invoices/${copy.id}`);
+      router.push(`/invoices/preview/${copy.id}`);
     } else {
       Alert.alert('Error', 'Could not duplicate invoice.');
     }
   }
 
-  async function handleDelete() {
+  function confirmDelete() {
     if (!invoice) return;
     Alert.alert('Delete invoice', 'This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
@@ -93,6 +87,41 @@ export default function InvoiceDetailScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
     >
+      <OverflowMenu
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        items={[
+          { label: 'Edit invoice', onPress: () => router.push(`/invoices/edit/${invoice.id}`) },
+          { label: 'Duplicate invoice', onPress: () => void handleDuplicate() },
+          { label: 'Delete invoice', onPress: confirmDelete, destructive: true },
+        ]}
+      />
+
+      <View style={styles.actionRow}>
+        <Pressable
+          onPress={() => router.push(`/invoices/preview/${invoice.id}`)}
+          style={[styles.iconBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          accessibilityLabel="Preview PDF"
+        >
+          <Ionicons name="document-text-outline" size={22} color={colors.primary} />
+        </Pressable>
+        <Pressable
+          onPress={() => void handleShare()}
+          disabled={sharing}
+          style={[styles.iconBtn, { backgroundColor: colors.surface, borderColor: colors.border, opacity: sharing ? 0.6 : 1 }]}
+          accessibilityLabel="Share PDF"
+        >
+          <Ionicons name="share-outline" size={22} color={colors.primary} />
+        </Pressable>
+        <Pressable
+          onPress={() => setMenuOpen(true)}
+          style={[styles.iconBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          accessibilityLabel="More options"
+        >
+          <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
+        </Pressable>
+      </View>
+
       <Card>
         <View style={styles.header}>
           <Text style={[styles.number, { color: colors.text, fontFamily: fontFamily.bold }]}>
@@ -105,17 +134,6 @@ export default function InvoiceDetailScreen() {
           {invoice.dueDate ? ` · Due ${formatDisplayDate(invoice.dueDate)}` : ''}
         </Text>
       </Card>
-
-      {invoice.notes ? (
-        <Card>
-          <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
-            Notes
-          </Text>
-          <Text style={{ color: colors.textSecondary, fontFamily: fontFamily.regular, lineHeight: 20 }}>
-            {invoice.notes}
-          </Text>
-        </Card>
-      ) : null}
 
       <Card style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
@@ -143,40 +161,16 @@ export default function InvoiceDetailScreen() {
         </View>
       </Card>
 
-      <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
-          Status
-        </Text>
-        <View style={styles.statusRow}>
-          {STATUS_OPTIONS.map((status) => (
-            <Button
-              key={status}
-              title={status}
-              variant={invoice.status === status ? 'primary' : 'secondary'}
-              fullWidth={false}
-              onPress={() => void handleStatusChange(status)}
-              style={styles.statusChip}
-            />
-          ))}
-        </View>
-      </Card>
-
-      <Button title="Edit invoice" variant="secondary" onPress={() => router.push(`/invoices/edit/${invoice.id}`)} />
-      <Button title="Duplicate invoice" variant="secondary" onPress={() => void handleDuplicate()} />
-      <Button
-        title="Preview PDF"
-        variant="secondary"
-        onPress={() => router.push(`/invoices/preview/${invoice.id}`)}
-      />
-      <Button title="Share PDF" onPress={handleShare} loading={sharing} />
-      {settings.subscriptionTier === 'free' ? (
-        <Text style={[styles.watermarkNote, { color: colors.textSecondary }]}>
-          Free PDFs include an Accvo watermark. Upgrade to Pro to remove it.
-        </Text>
+      {invoice.notes ? (
+        <Card>
+          <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
+            Notes
+          </Text>
+          <Text style={{ color: colors.textSecondary, fontFamily: fontFamily.regular, lineHeight: 20 }}>
+            {invoice.notes}
+          </Text>
+        </Card>
       ) : null}
-      <View style={{ marginTop: spacing.sm }}>
-        <Button title="Delete invoice" variant="danger" onPress={handleDelete} />
-      </View>
     </ScrollView>
   );
 }
@@ -185,6 +179,19 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+  },
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
   number: { fontSize: typography.xl },
   section: {},
@@ -197,7 +204,4 @@ const styles = StyleSheet.create({
   },
   totals: { marginTop: spacing.md, gap: 4 },
   grandTotal: { fontSize: typography.lg, marginTop: spacing.xs },
-  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  statusChip: { paddingHorizontal: spacing.md, minWidth: 80 },
-  watermarkNote: { fontSize: typography.xs, textAlign: 'center', marginTop: spacing.sm },
 });

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
 import { ThemeProvider } from '@/providers/ThemeProvider';
-import { initDatabase } from '@/services/localDb';
+import { initDatabase, resetDatabaseCache } from '@/services/localDb';
 import { useSettingsStore } from '@/store/settingsStore';
 
 interface AppProviderProps {
@@ -16,6 +16,9 @@ export function AppProvider({ children, onBootstrapComplete }: AppProviderProps)
     let cancelled = false;
 
     async function bootstrap() {
+      if (__DEV__) {
+        await resetDatabaseCache();
+      }
       await initDatabase();
       await loadSettings();
       if (!cancelled) {

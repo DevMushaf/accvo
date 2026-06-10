@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { AnalyticsDashboard } from '@/components/AnalyticsDashboard';
+import { AnalyticsTeaserCard } from '@/components/AnalyticsTeaserCard';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { BusinessSetupCard, GuestPromptBanner } from '@/components/GuestPromptBanner';
@@ -41,7 +41,7 @@ export default function DashboardScreen() {
     const [dashboardStats, recent, analyticsData] = await Promise.all([
       getDashboardStats(),
       getRecentInvoices(5),
-      getAnalyticsSummary(),
+      getAnalyticsSummary(6),
     ]);
     setStats(dashboardStats);
     setRecentInvoices(recent);
@@ -59,6 +59,13 @@ export default function DashboardScreen() {
     await loadData();
     setRefreshing(false);
   }
+
+  const monthChange =
+    analytics && analytics.paidLastMonth > 0
+      ? ((analytics.paidThisMonth - analytics.paidLastMonth) / analytics.paidLastMonth) * 100
+      : analytics && analytics.paidThisMonth > 0
+        ? 100
+        : 0;
 
   return (
     <ScrollView
@@ -88,6 +95,17 @@ export default function DashboardScreen() {
         <Text style={[styles.incomeValue, { color: colors.primary, fontFamily: fontFamily.bold }]}>
           {formatCurrency(stats.totalIncome, defaultCurrency)}
         </Text>
+        {monthChange !== 0 && analytics ? (
+          <Text
+            style={[
+              styles.incomeDelta,
+              { color: monthChange >= 0 ? colors.success : colors.error, fontFamily: fontFamily.medium },
+            ]}
+          >
+            {monthChange >= 0 ? '+' : ''}
+            {monthChange.toFixed(0)}% paid revenue vs last month
+          </Text>
+        ) : null}
       </Card>
 
       <View style={styles.statsRow}>
@@ -96,7 +114,7 @@ export default function DashboardScreen() {
         <StatBox label="Overdue" value={stats.overdueCount} colors={colors} accent={colors.error} />
       </View>
 
-      {analytics ? <AnalyticsDashboard data={analytics} currency={defaultCurrency} /> : null}
+      {analytics ? <AnalyticsTeaserCard data={analytics} currency={defaultCurrency} /> : null}
 
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
@@ -152,7 +170,8 @@ const styles = StyleSheet.create({
   incomeCard: { marginBottom: spacing.md },
   incomeLabel: { fontSize: typography.sm, marginBottom: spacing.xs },
   incomeValue: { fontSize: typography.xxl },
-  statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
+  incomeDelta: { fontSize: typography.sm, marginTop: spacing.xs },
+  statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   statBox: {
     flex: 1,
     borderRadius: 12,

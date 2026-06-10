@@ -10,13 +10,15 @@ export function BusinessLogoSection() {
   const { colors } = useTheme();
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const isWide = settings.businessLogoShape === 'wide';
 
   async function handlePickLogo() {
     try {
-      const uri = await pickAndSaveBusinessLogo();
-      if (uri) {
+      const result = await pickAndSaveBusinessLogo();
+      if (result) {
         await updateSettings({
-          businessLogoUri: uri,
+          businessLogoUri: result.uri,
+          businessLogoShape: result.shape,
           showLogoOnInvoice: true,
           showLogoOnBusinessCard: true,
         });
@@ -31,6 +33,7 @@ export function BusinessLogoSection() {
     await removeBusinessLogo(settings.businessLogoUri);
     await updateSettings({
       businessLogoUri: null,
+      businessLogoShape: 'square',
       showLogoOnInvoice: false,
       showLogoOnBusinessCard: false,
     });
@@ -42,11 +45,17 @@ export function BusinessLogoSection() {
         Business logo (optional)
       </Text>
       <Text style={[styles.hint, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
-        Shown on invoices and your business card when enabled below.
+        Square or wide logos supported. Wide wordmarks work best for horizontal layouts.
       </Text>
 
       {settings.businessLogoUri ? (
-        <View style={[styles.previewBox, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+        <View
+          style={[
+            styles.previewBox,
+            isWide ? styles.previewBoxWide : styles.previewBoxSquare,
+            { borderColor: colors.border, backgroundColor: colors.surface },
+          ]}
+        >
           <Image source={{ uri: settings.businessLogoUri }} style={styles.previewImage} resizeMode="contain" />
         </View>
       ) : (
@@ -129,12 +138,19 @@ const styles = StyleSheet.create({
   label: { fontSize: typography.sm, marginBottom: spacing.xs },
   hint: { fontSize: typography.sm, lineHeight: 20, marginBottom: spacing.sm },
   previewBox: {
-    width: 88,
-    height: 88,
     borderRadius: 12,
     borderWidth: 1,
     padding: spacing.sm,
     marginBottom: spacing.sm,
+    alignSelf: 'flex-start',
+  },
+  previewBoxSquare: {
+    width: 88,
+    height: 88,
+  },
+  previewBoxWide: {
+    width: 160,
+    height: 56,
   },
   previewImage: { width: '100%', height: '100%' },
   placeholder: {

@@ -8,12 +8,28 @@ interface TemplateOption {
   label: string;
   description: string;
   accentColor: string;
+  previewColors?: [string, string, string];
 }
 
 interface TemplatePickerProps {
   options: TemplateOption[];
   selectedId: string;
   onSelect: (id: string) => void;
+}
+
+function TemplatePreviewStrip({ colors }: { colors: [string, string, string] }) {
+  const [header, table, footer] = colors;
+  return (
+    <View style={previewStyles.strip}>
+      <View style={[previewStyles.headerBar, { backgroundColor: header }]} />
+      <View style={previewStyles.tableBlock}>
+        <View style={[previewStyles.tableRow, { backgroundColor: table }]} />
+        <View style={[previewStyles.tableRow, { backgroundColor: '#F3F4F6', opacity: 0.8 }]} />
+        <View style={[previewStyles.tableRow, { backgroundColor: table, opacity: 0.5 }]} />
+      </View>
+      <View style={[previewStyles.footerBar, { backgroundColor: footer }]} />
+    </View>
+  );
 }
 
 export function TemplatePicker({ options, selectedId, onSelect }: TemplatePickerProps) {
@@ -35,7 +51,11 @@ export function TemplatePicker({ options, selectedId, onSelect }: TemplatePicker
               },
             ]}
           >
-            <View style={[styles.swatch, { backgroundColor: option.accentColor }]} />
+            {option.previewColors ? (
+              <TemplatePreviewStrip colors={option.previewColors} />
+            ) : (
+              <View style={[styles.swatch, { backgroundColor: option.accentColor }]} />
+            )}
             <View style={styles.textBlock}>
               <Text style={[styles.label, { color: colors.text, fontFamily: fontFamily.semibold }]}>
                 {option.label}
@@ -55,6 +75,34 @@ export function TemplatePicker({ options, selectedId, onSelect }: TemplatePicker
     </View>
   );
 }
+
+const previewStyles = StyleSheet.create({
+  strip: {
+    width: 36,
+    height: 48,
+    borderRadius: 6,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  headerBar: {
+    height: 14,
+  },
+  tableBlock: {
+    flex: 1,
+    padding: 3,
+    gap: 2,
+    justifyContent: 'center',
+  },
+  tableRow: {
+    height: 5,
+    borderRadius: 2,
+  },
+  footerBar: {
+    height: 8,
+  },
+});
 
 const styles = StyleSheet.create({
   list: {

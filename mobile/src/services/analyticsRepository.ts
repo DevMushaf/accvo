@@ -1,4 +1,6 @@
-import { getDatabase } from '@/services/localDb';
+import { withDatabase } from '@/services/localDb';
+
+export type AnalyticsPeriodMonths = 3 | 6 | 12;
 
 export interface MonthlyRevenue {
   month: string;
@@ -13,6 +15,13 @@ export interface TopCustomer {
   invoiceCount: number;
 }
 
+export interface StatusBreakdown {
+  paid: number;
+  sent: number;
+  overdue: number;
+  draft: number;
+}
+
 export interface AnalyticsSummary {
   totalIncome: number;
   outstandingAmount: number;
@@ -25,12 +34,19 @@ export interface AnalyticsSummary {
   customerCount: number;
   monthlyRevenue: MonthlyRevenue[];
   topCustomers: TopCustomer[];
+  statusBreakdown: StatusBreakdown;
 }
 
 function monthLabel(ym: string): string {
   const [year, month] = ym.split('-');
   const date = new Date(Number(year), Number(month) - 1, 1);
-  return date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+  return date.toLocaleDateString(undefined, { month: 'short' });
+}
+
+export function monthLabelLong(ym: string): string {
+  const [year, month] = ym.split('-');
+  const date = new Date(Number(year), Number(month) - 1, 1);
+  return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 }
 
 function currentYearMonth(): string {
@@ -44,9 +60,30 @@ function previousYearMonth(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function buildMonthlySeries(
+  rows: { month: string; total: number }[],
+  months: AnalyticsPeriodMonths,
+): MonthlyRevenue[] {
+  const lookup = new Map(rows.map((row) => [row.month, row.total]));
+  const series: MonthlyRevenue[] = [];
+  const now = new Date();
+
+  for (let i = months - 1; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    series.push({
+      month: key,
+      label: monthLabel(key),
+      total: lookup.get(key) ?? 0,
+    });
+  }
+
+  return series;
+}
+
 /** Local-only analytics — computed from SQLite, no network or cost. */
-export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
-  const db = await getDatabase();
+export async function getAnalyticsSummary(months: AnalyticsPeriodMonths = 6): Promise<AnalyticsSummary> {
+  return withDatabase(async (db) => {
   const thisMonth = currentYearMonth();
   const lastMonth = previousYearMonth();
 
@@ -81,7 +118,11 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
   const monthlyRows = await db.getAllAsync<{ month: string; total: number }>(
     `SELECT strftime('%Y-%m', issueDate) as month, COALESCE(SUM(total), 0) as total
      FROM invoices WHERE status = 'paid'
-     GROUP BY month ORDER BY month DESC LIMIT 6`,
+     GROUP BY month ORDER BY month ASC`,
+  );
+
+  const statusRows = await db.getAllAsync<{ status: string; count: number }>(
+    'SELECT status, COUNT(*) as count FROM invoices GROUP BY status',
   );
 
   const topCustomerRows = await db.getAllAsync<{
@@ -100,13 +141,12 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
      LIMIT 5`,
   );
 
-  const monthlyRevenue = monthlyRows
-    .map((row) => ({
-      month: row.month,
-      label: monthLabel(row.month),
-      total: row.total,
-    }))
-    .reverse();
+  const statusBreakdown: StatusBreakdown = { paid: 0, sent: 0, overdue: 0, draft: 0 };
+  for (const row of statusRows) {
+    if (row.status in statusBreakdown) {
+      statusBreakdown[row.status as keyof StatusBreakdown] = row.count;
+    }
+  }
 
   return {
     totalIncome: incomeRow?.total ?? 0,
@@ -118,12 +158,18 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
     invoiceCountThisMonth: invoiceThisMonthRow?.count ?? 0,
     draftCount: draftRow?.count ?? 0,
     customerCount: customerRow?.count ?? 0,
-    monthlyRevenue,
+    monthlyRevenue: buildMonthlySeries(monthlyRows, months),
     topCustomers: topCustomerRows.map((row) => ({
       customerId: row.customerId,
       customerName: row.customerName ?? 'No customer',
       total: row.total,
       invoiceCount: row.invoiceCount,
     })),
+    statusBreakdown,
   };
+  });
+}
+
+export function getCurrentYearMonth(): string {
+  return currentYearMonth();
 }

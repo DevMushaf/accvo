@@ -13,6 +13,7 @@ export type BusinessProfileDraft = Pick<
   | 'businessPhone'
   | 'businessWebsite'
   | 'businessAddress'
+  | 'paymentNote'
 >;
 
 function pickBusinessProfile(settings: AppSettings): BusinessProfileDraft {
@@ -23,6 +24,7 @@ function pickBusinessProfile(settings: AppSettings): BusinessProfileDraft {
     businessPhone: settings.businessPhone,
     businessWebsite: settings.businessWebsite,
     businessAddress: settings.businessAddress,
+    paymentNote: settings.paymentNote,
   };
 }
 
