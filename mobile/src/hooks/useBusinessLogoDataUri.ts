@@ -5,6 +5,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 
 export function useBusinessLogoDataUri() {
   const logoUri = useSettingsStore((s) => s.settings.businessLogoUri);
+  const logoRevision = useSettingsStore((s) => s.settings.businessLogoRevision);
   const [logoDataUri, setLogoDataUri] = useState<string | null>(null);
 
   useEffect(() => {
@@ -13,7 +14,7 @@ export function useBusinessLogoDataUri() {
       return;
     }
     void getBusinessLogoDataUri(logoUri).then(setLogoDataUri);
-  }, [logoUri]);
+  }, [logoUri, logoRevision]);
 
   return logoDataUri;
 }

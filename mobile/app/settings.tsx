@@ -102,7 +102,10 @@ export default function SettingsScreen() {
           onSelect={(id) => void updateSettings({ invoiceTemplate: id as InvoiceTemplate })}
         />
         <View style={styles.previewWrap}>
-          <DocumentPreview html={previewHtml} />
+          <DocumentPreview
+            html={previewHtml}
+            reloadKey={`${settings.businessLogoRevision}-${settings.businessLogoScale}-${settings.invoiceTemplate}`}
+          />
         </View>
       </Card>
 

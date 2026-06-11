@@ -1,27 +1,40 @@
 import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import type { ImageData } from 'expo-dynamic-image-crop';
 
 import { Button } from '@/components/Button';
+import { LogoCropModal } from '@/components/LogoCropModal';
+import { LogoSizeSlider } from '@/components/LogoSizeSlider';
 import { useTheme } from '@/providers/ThemeProvider';
-import { pickAndSaveBusinessLogo, removeBusinessLogo } from '@/services/businessLogoService';
+import {
+  fitLogoDimensions,
+  LOGO_PREVIEW_MAX,
+  pickLogoImage,
+  removeBusinessLogo,
+  saveCroppedLogo,
+} from '@/services/businessLogoService';
 import { useSettingsStore } from '@/store/settingsStore';
 import { fontFamily, spacing, typography } from '@/theme';
 
-export function BusinessLogoSection() {
+interface BusinessLogoSectionProps {
+  /** Card screen hides invoice options and logo size slider. */
+  variant?: 'settings' | 'card';
+}
+
+export function BusinessLogoSection({ variant = 'settings' }: BusinessLogoSectionProps) {
+  const isCard = variant === 'card';
   const { colors } = useTheme();
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
-  const isWide = settings.businessLogoShape === 'wide';
+  const [cropUri, setCropUri] = useState<string | null>(null);
+  const [cropVisible, setCropVisible] = useState(false);
 
   async function handlePickLogo() {
     try {
-      const result = await pickAndSaveBusinessLogo();
-      if (result) {
-        await updateSettings({
-          businessLogoUri: result.uri,
-          businessLogoShape: result.shape,
-          showLogoOnInvoice: true,
-          showLogoOnBusinessCard: true,
-        });
+      const uri = await pickLogoImage();
+      if (uri) {
+        setCropUri(uri);
+        setCropVisible(true);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not add logo.';
@@ -29,34 +42,106 @@ export function BusinessLogoSection() {
     }
   }
 
+  async function handleCropComplete(data: ImageData) {
+    try {
+      const result = await saveCroppedLogo(data.uri);
+      await updateSettings({
+        businessLogoUri: result.uri,
+        businessLogoShape: result.shape,
+        businessLogoWidth: result.width,
+        businessLogoHeight: result.height,
+        businessLogoRevision: Date.now(),
+        ...(isCard ? {} : { showLogoOnInvoice: true }),
+        showLogoOnBusinessCard: true,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not save logo.';
+      Alert.alert('Logo', message);
+    } finally {
+      setCropVisible(false);
+      setCropUri(null);
+    }
+  }
+
+  function handleCropCancel() {
+    setCropVisible(false);
+    setCropUri(null);
+  }
+
   async function handleRemoveLogo() {
     await removeBusinessLogo(settings.businessLogoUri);
     await updateSettings({
       businessLogoUri: null,
       businessLogoShape: 'square',
-      showLogoOnInvoice: false,
-      showLogoOnBusinessCard: false,
+      businessLogoWidth: null,
+      businessLogoHeight: null,
+      businessLogoRevision: Date.now(),
+      ...(isCard
+        ? { showLogoOnBusinessCard: false }
+        : {
+            businessLogoScale: 1,
+            showLogoOnInvoice: false,
+            showLogoOnBusinessCard: false,
+          }),
     });
   }
+
+  const logoScale = settings.businessLogoScale ?? 1;
+
+  function handleScaleChange(scale: number) {
+    useSettingsStore.setState((state) => ({
+      settings: { ...state.settings, businessLogoScale: scale },
+    }));
+  }
+
+  function handleScaleComplete(scale: number) {
+    void updateSettings({ businessLogoScale: scale });
+  }
+
+  const previewSize =
+    settings.businessLogoWidth && settings.businessLogoHeight
+      ? (() => {
+          const fitted = fitLogoDimensions(
+            settings.businessLogoWidth,
+            settings.businessLogoHeight,
+            LOGO_PREVIEW_MAX,
+            LOGO_PREVIEW_MAX,
+          );
+          return {
+            width: Math.round(fitted.width * logoScale),
+            height: Math.round(fitted.height * logoScale),
+          };
+        })()
+      : { width: LOGO_PREVIEW_MAX, height: LOGO_PREVIEW_MAX };
 
   return (
     <View style={styles.wrap}>
       <Text style={[styles.label, { color: colors.text, fontFamily: fontFamily.medium }]}>
-        Business logo (optional)
+        {isCard ? 'Card logo (optional)' : 'Business logo (optional)'}
       </Text>
       <Text style={[styles.hint, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
-        Square or wide logos supported. Wide wordmarks work best for horizontal layouts.
+        {isCard
+          ? 'Appears on the front and back of your card. Crop to a square or wide mark.'
+          : 'Choose a photo, then drag the crop corners to any size. Pinch to zoom and pan the image.'}
       </Text>
 
       {settings.businessLogoUri ? (
         <View
           style={[
             styles.previewBox,
-            isWide ? styles.previewBoxWide : styles.previewBoxSquare,
-            { borderColor: colors.border, backgroundColor: colors.surface },
+            {
+              width: previewSize.width,
+              height: previewSize.height,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+            },
           ]}
         >
-          <Image source={{ uri: settings.businessLogoUri }} style={styles.previewImage} resizeMode="contain" />
+          <Image
+            source={{ uri: `${settings.businessLogoUri}?rev=${settings.businessLogoRevision}` }}
+            style={styles.previewImage}
+            resizeMode="contain"
+          />
         </View>
       ) : (
         <View style={[styles.placeholder, { borderColor: colors.border, backgroundColor: colors.primaryLight }]}>
@@ -87,18 +172,34 @@ export function BusinessLogoSection() {
 
       {settings.businessLogoUri ? (
         <View style={styles.toggles}>
+          {!isCard ? (
+            <LogoSizeSlider
+              value={logoScale}
+              onValueChange={handleScaleChange}
+              onSlidingComplete={handleScaleComplete}
+            />
+          ) : null}
+          {!isCard ? (
+            <ToggleRow
+              label="Show on invoices"
+              active={settings.showLogoOnInvoice}
+              onPress={() => void updateSettings({ showLogoOnInvoice: !settings.showLogoOnInvoice })}
+            />
+          ) : null}
           <ToggleRow
-            label="Show on invoices"
-            active={settings.showLogoOnInvoice}
-            onPress={() => void updateSettings({ showLogoOnInvoice: !settings.showLogoOnInvoice })}
-          />
-          <ToggleRow
-            label="Show on business card"
+            label={isCard ? 'Show logo on card' : 'Show on business card'}
             active={settings.showLogoOnBusinessCard}
             onPress={() => void updateSettings({ showLogoOnBusinessCard: !settings.showLogoOnBusinessCard })}
           />
         </View>
       ) : null}
+
+      <LogoCropModal
+        visible={cropVisible}
+        imageUri={cropUri}
+        onComplete={(data) => void handleCropComplete(data)}
+        onCancel={handleCropCancel}
+      />
     </View>
   );
 }
@@ -143,14 +244,6 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     marginBottom: spacing.sm,
     alignSelf: 'flex-start',
-  },
-  previewBoxSquare: {
-    width: 88,
-    height: 88,
-  },
-  previewBoxWide: {
-    width: 160,
-    height: 56,
   },
   previewImage: { width: '100%', height: '100%' },
   placeholder: {

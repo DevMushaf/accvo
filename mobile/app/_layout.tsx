@@ -10,6 +10,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
+import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { AppMenuDrawer } from '@/components/AppMenuDrawer';

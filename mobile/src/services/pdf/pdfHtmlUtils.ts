@@ -1,3 +1,4 @@
+import { fitLogoDimensions, LOGO_PDF_MAX_H, LOGO_PDF_MAX_W } from '@/services/businessLogoService';
 import type { Invoice } from '@/types/invoice';
 import type { AppSettings } from '@/types/settings';
 import { formatCurrency } from '@/utils/currency';
@@ -38,11 +39,12 @@ export function buildLogoImg(
   return `<img src="${logoDataUri}" alt="Logo" style="width:${size}px;height:${size}px;object-fit:contain;border-radius:8px;flex-shrink:0;${extraStyle}" />`;
 }
 
-export type InvoiceLogoVariant = 'onDark' | 'onColor' | 'onLight';
+export type InvoiceLogoVariant = 'onDark' | 'onColor' | 'onLight' | 'plain';
 export type InvoiceLogoShape = 'square' | 'wide';
+export type InvoiceLogoSize = 'normal' | 'large' | 'footer';
 
 const INVOICE_LOGO_PLATE: Record<
-  InvoiceLogoVariant,
+  Exclude<InvoiceLogoVariant, 'plain'>,
   { background: string; border: string; shadow: string }
 > = {
   onDark: {
@@ -78,22 +80,75 @@ const INVOICE_LOGO_BOUNDS_LARGE: Record<
   wide: { imgW: 180, imgH: 56, pad: 8 },
 };
 
+/** Larger bounds for footer / Studio header — no plate, sits directly on the page. */
+const INVOICE_LOGO_BOUNDS_FOOTER: Record<
+  InvoiceLogoShape,
+  { imgW: number; imgH: number; pad: number }
+> = {
+  square: { imgW: 160, imgH: 160, pad: 0 },
+  wide: { imgW: 176, imgH: 88, pad: 0 },
+};
+
+function resolveInvoiceLogoBounds(
+  shape: InvoiceLogoShape,
+  size: InvoiceLogoSize,
+): { imgW: number; imgH: number; pad: number } {
+  if (size === 'footer') return INVOICE_LOGO_BOUNDS_FOOTER[shape];
+  if (size === 'large') return INVOICE_LOGO_BOUNDS_LARGE[shape];
+  return INVOICE_LOGO_BOUNDS[shape];
+}
+
 export function buildInvoiceLogo(
   logoDataUri: string,
   options: {
     variant: InvoiceLogoVariant;
     shape?: InvoiceLogoShape;
-    size?: 'normal' | 'large';
+    size?: InvoiceLogoSize;
+    naturalWidth?: number | null;
+    naturalHeight?: number | null;
+    scale?: number;
   },
 ): string {
   const shape = options.shape ?? 'square';
-  const plate = INVOICE_LOGO_PLATE[options.variant];
-  const bounds = (options.size === 'large' ? INVOICE_LOGO_BOUNDS_LARGE : INVOICE_LOGO_BOUNDS)[shape];
-  const outerW = bounds.imgW + bounds.pad * 2;
-  const outerH = bounds.imgH + bounds.pad * 2;
+  const displayScale = Math.min(1.6, Math.max(0.45, options.scale ?? 1));
+  let imgW: number;
+  let imgH: number;
+  let pad = 0;
 
-  return `<div style="display:inline-flex;align-items:center;justify-content:center;width:${outerW}px;height:${outerH}px;padding:${bounds.pad}px;background:${plate.background};border:${plate.border};border-radius:10px;box-shadow:${plate.shadow};flex-shrink:0;box-sizing:border-box;">
-    <img src="${logoDataUri}" alt="Logo" style="display:block;width:${bounds.imgW}px;height:${bounds.imgH}px;object-fit:contain;" />
+  if (
+    options.size === 'footer' &&
+    options.naturalWidth &&
+    options.naturalHeight &&
+    options.naturalWidth > 0 &&
+    options.naturalHeight > 0
+  ) {
+    const fitted = fitLogoDimensions(
+      options.naturalWidth,
+      options.naturalHeight,
+      LOGO_PDF_MAX_W,
+      LOGO_PDF_MAX_H,
+    );
+    imgW = Math.round(fitted.width * displayScale);
+    imgH = Math.round(fitted.height * displayScale);
+  } else {
+    const bounds = resolveInvoiceLogoBounds(shape, options.size ?? 'normal');
+    imgW = bounds.imgW;
+    imgH = bounds.imgH;
+    pad = bounds.pad;
+  }
+
+  const imgStyle = `display:block;width:${imgW}px;height:${imgH}px;object-fit:contain;flex-shrink:0;`;
+
+  if (options.variant === 'plain') {
+    return `<div style="display:inline-block;padding:10px 14px;margin:4px 0 4px 8px;flex-shrink:0;">\n      <img src="${logoDataUri}" alt="Logo" style="${imgStyle}" />\n    </div>`;
+  }
+
+  const plate = INVOICE_LOGO_PLATE[options.variant];
+  const outerW = imgW + pad * 2;
+  const outerH = imgH + pad * 2;
+
+  return `<div style="display:inline-flex;align-items:center;justify-content:center;width:${outerW}px;height:${outerH}px;padding:${pad}px;background:${plate.background};border:${plate.border};border-radius:10px;box-shadow:${plate.shadow};flex-shrink:0;box-sizing:border-box;">
+    <img src="${logoDataUri}" alt="Logo" style="${imgStyle}" />
   </div>`;
 }
 
@@ -128,7 +183,7 @@ export function buildHeaderRightColumn(
 ): string {
   const align = options.align ?? 'right';
   const logoSlot = options.logoHtml
-    ? `<div style="margin-top:14px;display:flex;justify-content:${align === 'right' ? 'flex-end' : 'flex-start'};">${options.logoHtml}</div>`
+    ? `<div style="margin-top:18px;padding-top:14px;display:flex;justify-content:${align === 'right' ? 'flex-end' : 'flex-start'};">${options.logoHtml}</div>`
     : '';
 
   return `<div style="text-align:${align};flex-shrink:0;">
@@ -213,7 +268,7 @@ export function buildBusinessHeaderBlock(
 
 export function buildWatermark(show: boolean): string {
   if (!show) return '';
-  return `<div style="margin-top:40px;padding-top:16px;border-top:1px dashed #CBD5E1;text-align:center;color:#94A3B8;font-size:11px;">
+  return `<div style="margin-top:20px;padding-top:16px;border-top:1px dashed #CBD5E1;text-align:center;color:#94A3B8;font-size:11px;">
     Created with Accvo
   </div>`;
 }
@@ -259,28 +314,121 @@ function extractBodyContent(fullHtml: string): string {
   return match?.[1] ?? fullHtml;
 }
 
-export function wrapHtmlForScreenPreview(fullHtml: string, kind: 'invoice' | 'card'): string {
-  const body = extractBodyContent(fullHtml);
-
-  if (kind === 'card') {
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
-      <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
-      <style>html,body{margin:0;padding:0;background:#E8EDF4;}
-      .shell{padding:12px;display:flex;justify-content:center;align-items:flex-start;}</style>
-      </head><body><div class="shell">${body}</div></body></html>`;
+const PREVIEW_FIT_SCRIPT = `
+(function () {
+  function fit() {
+    var page = document.getElementById('page');
+    var shell = document.getElementById('shell');
+    if (!page || !shell) return;
+    page.style.zoom = '1';
+    page.style.transform = 'none';
+    var naturalW = page.offsetWidth;
+    var naturalH = page.scrollHeight;
+    var pad = 12;
+    var availW = window.innerWidth - pad * 2;
+    var availH = window.innerHeight - pad * 2;
+    var scaleW = availW / naturalW;
+    var scaleH = availH / naturalH;
+    var scale = Math.min(scaleW, scaleH, 1);
+    if (typeof page.style.zoom !== 'undefined') {
+      page.style.zoom = String(scale);
+    } else {
+      page.style.transform = 'scale(' + scale + ')';
+      page.style.transformOrigin = 'top center';
+    }
+    var scaledH = Math.ceil(naturalH * scale);
+    shell.style.height = scaledH + pad + 'px';
+    document.body.style.height = shell.offsetHeight + 'px';
+    document.documentElement.style.height = shell.offsetHeight + 'px';
   }
+  if (document.readyState === 'complete') fit();
+  else window.addEventListener('load', fit);
+  setTimeout(fit, 50);
+  setTimeout(fit, 250);
+  setTimeout(fit, 600);
+})();
+`;
 
-  const scale = 0.34;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+const INVOICE_PREVIEW_PAGE_CSS = `
+  #page {
+    width: 612px;
+    min-height: 792px;
+    font-family: Helvetica, Arial, sans-serif;
+    color: #111827;
+    margin: 0;
+    padding: 36px 40px 48px;
+    background: #fff;
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  #page .invoice-main {
+    flex: 0 0 auto;
+  }
+  #page .invoice-bottom {
+    margin-top: auto;
+    flex-shrink: 0;
+    padding-top: 28px;
+  }
+`;
+
+export function wrapHtmlForScreenPreview(
+  fullHtml: string,
+  kind: 'invoice' | 'card' | 'card-face',
+): string {
+  const body = extractBodyContent(fullHtml);
+  const pageWidth = kind === 'invoice' ? 612 : kind === 'card-face' ? 364 : 364;
+  const pageMinHeight = kind === 'card' ? 500 : kind === 'card-face' ? 240 : 0;
+  const pageCss =
+    kind === 'invoice'
+      ? INVOICE_PREVIEW_PAGE_CSS
+      : `#page { width: ${pageWidth}px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }`;
+
+  const cardFontLink =
+    kind !== 'invoice'
+      ? '<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">'
+      : '';
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/>${cardFontLink}
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
     <style>
-      html,body{margin:0;padding:0;background:#E8EDF4;overflow-x:hidden;}
-      .frame{width:${100 / scale}%;transform:scale(${scale});transform-origin:top left;padding-bottom:24px;}
-    </style></head><body><div class="frame">${body}</div></body></html>`;
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #E8EDF4;
+        overflow: hidden;
+        width: 100%;
+      }
+      #shell {
+        padding: 10px 8px;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        overflow: hidden;
+        box-sizing: border-box;
+        width: 100%;
+        ${pageMinHeight ? `min-height: ${pageMinHeight}px;` : ''}
+      }
+      ${pageCss}
+      #page {
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        flex-shrink: 0;
+      }
+    </style>
+    </head><body>
+      <div id="shell"><div id="page">${body}</div></div>
+      <script>${PREVIEW_FIT_SCRIPT}<\/script>
+    </body></html>`;
 }
 
 export const INVOICE_PAGE_STYLE = `
   @page { margin: 24px; }
+  html, body {
+    height: 100%;
+  }
   body {
     font-family: Helvetica, Arial, sans-serif;
     color: #111827;
@@ -288,10 +436,29 @@ export const INVOICE_PAGE_STYLE = `
     padding: 36px 40px 48px;
     background: #fff;
     line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+  .invoice-main {
+    flex: 0 0 auto;
+  }
+  .invoice-bottom {
+    margin-top: auto;
+    flex-shrink: 0;
+    padding-top: 28px;
+  }
 `;
+
+/** Pins notes, logo, watermark, and contact bar to the page bottom. */
+export function wrapInvoiceBottom(...sections: string[]): string {
+  const content = sections.filter(Boolean).join('');
+  if (!content) return '';
+  return `<div class="invoice-bottom">${content}</div>`;
+}
 
 export function buildGeometricHeaderSvg(primary: string, secondary: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 120" preserveAspectRatio="none" style="position:absolute;top:0;left:0;width:100%;height:120px;z-index:0;">
@@ -546,6 +713,14 @@ export function buildTotalsSection(options: TotalsSectionOptions): string {
   </div>`;
 }
 
+export function buildNotesBlock(notes: string | null): string {
+  if (!notes) return '';
+  return `<div>
+    <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6B7280;">Notes</p>
+    <p style="margin:0;font-size:12px;color:#4B5563;line-height:1.6;white-space:pre-wrap;">${escapeHtml(notes)}</p>
+  </div>`;
+}
+
 export function buildTermsFooter(
   notes: string | null,
   options: { businessName?: string; accentColor?: string; showThankYou?: boolean; showAuthorized?: boolean } = {},
@@ -558,28 +733,33 @@ export function buildTermsFooter(
     ? `<p style="margin:20px 0 0;font-size:12px;color:#6B7280;">Authorized by <strong style="color:#111827;">${escapeHtml(options.businessName)}</strong></p>`
     : '';
 
-  const termsBlock = notes
-    ? `<div style="margin-top:24px;">
-        <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6B7280;">Notes</p>
-        <p style="margin:0;font-size:12px;color:#4B5563;line-height:1.6;white-space:pre-wrap;">${escapeHtml(notes)}</p>
-      </div>`
-    : '';
-
-  return `${termsBlock}${thankYou}${authorized}`;
+  return `${buildNotesBlock(notes)}${thankYou}${authorized}`;
 }
 
-/** Terms / thank-you block with logo anchored bottom-right beside it. */
+/** Logo on the right, aligned with the Notes block; thank-you stays under Notes on the left. */
 export function buildTermsFooterWithLogo(
   notes: string | null,
   logoHtml: string,
   options: { businessName?: string; accentColor?: string; showThankYou?: boolean; showAuthorized?: boolean } = {},
 ): string {
-  const inner = buildTermsFooter(notes, options);
-  if (!logoHtml) return inner;
+  if (!logoHtml) return buildTermsFooter(notes, options);
 
-  return `<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:28px;flex-wrap:wrap;margin-top:24px;">
-    <div style="flex:1;min-width:220px;">${inner}</div>
-    <div style="flex-shrink:0;">${logoHtml}</div>
+  const accent = options.accentColor ?? '#374151';
+  const notesBlock = buildNotesBlock(notes);
+  const thankYou = options.showThankYou !== false
+    ? `<p style="margin:16px 0 0;font-size:13px;color:${accent};font-style:italic;">Thank you for your business!</p>`
+    : '';
+  const authorized = options.showAuthorized && options.businessName
+    ? `<p style="margin:20px 0 0;font-size:12px;color:#6B7280;">Authorized by <strong style="color:#111827;">${escapeHtml(options.businessName)}</strong></p>`
+    : '';
+
+  return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:32px;flex-wrap:wrap;padding-top:8px;">
+    <div style="flex:1;min-width:200px;padding-right:20px;">
+      ${notesBlock}
+      ${thankYou}
+      ${authorized}
+    </div>
+    <div style="flex-shrink:0;padding-left:12px;align-self:flex-start;">${logoHtml}</div>
   </div>`;
 }
 
@@ -593,7 +773,7 @@ export function buildContactFooterBar(settings: AppSettings, bgColor: string, te
     ? parts.join('<span style="opacity:0.5;margin:0 12px;">|</span>')
     : escapeHtml(settings.businessName);
 
-  return `<div style="margin-top:32px;margin-left:-40px;margin-right:-40px;margin-bottom:-48px;padding:16px 40px;background:${bgColor};color:${textColor};font-size:12px;text-align:center;">
+  return `<div style="margin-top:16px;margin-left:-40px;margin-right:-40px;margin-bottom:-48px;padding:16px 40px;background:${bgColor};color:${textColor};font-size:12px;text-align:center;">
     ${content}
   </div>`;
 }
@@ -741,7 +921,7 @@ export function buildStudioFooter(
       </div>`
     : '';
 
-  return `<div style="margin-top:44px;margin-left:-40px;margin-right:-40px;margin-bottom:-48px;">
+  return `<div style="margin-top:0;margin-left:-40px;margin-right:-40px;margin-bottom:-48px;">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 40" preserveAspectRatio="none" style="display:block;width:100%;height:36px;">
       <path d="M0,40 L0,18 Q200,0 400,18 T800,18 L800,40 Z" fill="${navy}"/>
       <path d="M0,40 L0,22 Q200,6 400,22 T800,22 L800,40 Z" fill="${blue}" opacity="0.35"/>

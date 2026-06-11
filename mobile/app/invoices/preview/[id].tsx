@@ -163,7 +163,10 @@ export default function InvoicePreviewScreen() {
       </View>
 
       <View style={styles.previewWrap}>
-        <DocumentPreview html={html} />
+        <DocumentPreview
+          html={html}
+          reloadKey={`${settings.businessLogoRevision}-${settings.businessLogoScale}-${previewTemplate}`}
+        />
       </View>
 
       <View

@@ -1,6 +1,11 @@
 import { withDatabase } from '@/services/localDb';
 import type { AppSettings, AuthMode } from '@/types/settings';
 import { DEFAULT_SETTINGS } from '@/types/settings';
+import {
+  getCardAccentColor,
+  migrateBusinessCardTemplate,
+  type BusinessCardTemplate,
+} from '@/types/businessCardTemplate';
 import { migrateInvoiceTemplate } from '@/types/invoiceTemplate';
 import type * as SQLite from 'expo-sqlite';
 
@@ -8,6 +13,18 @@ const SETTINGS_KEY = 'app_settings';
 
 interface LegacySettings extends Partial<AppSettings> {
   hasSeenOnboarding?: boolean;
+}
+
+function migrateBusinessCardAccentColors(
+  colors: Partial<Record<string, string>>,
+): Partial<Record<BusinessCardTemplate, string>> {
+  const migrated = { ...colors } as Partial<Record<BusinessCardTemplate, string>>;
+  for (const template of ['wave', 'executive', 'orbit'] as const) {
+    const saved = migrated[template];
+    if (!saved) continue;
+    migrated[template] = getCardAccentColor(template, migrated);
+  }
+  return migrated;
 }
 
 function migrateSettings(parsed: LegacySettings): AppSettings {
@@ -26,8 +43,22 @@ function migrateSettings(parsed: LegacySettings): AppSettings {
     hasSeenWelcome: parsed.hasSeenWelcome ?? hadLegacyOnboarding ?? false,
     hasDismissedGuestBanner: parsed.hasDismissedGuestBanner ?? false,
     paymentNote: parsed.paymentNote ?? '',
-    businessLogoShape: parsed.businessLogoShape ?? 'square',
+    businessLogoShape: parsed.businessLogoShape === 'wide' ? 'square' : (parsed.businessLogoShape ?? 'square'),
+    businessLogoWidth: parsed.businessLogoWidth ?? null,
+    businessLogoHeight: parsed.businessLogoHeight ?? null,
+    businessLogoScale:
+      typeof parsed.businessLogoScale === 'number'
+        ? Math.min(1.6, Math.max(0.45, parsed.businessLogoScale))
+        : 1,
+    businessLogoRevision: parsed.businessLogoRevision ?? 0,
     invoiceTemplate: migrateInvoiceTemplate(parsed.invoiceTemplate as string | undefined),
+    businessCardTemplate: migrateBusinessCardTemplate(parsed.businessCardTemplate as string | undefined),
+    businessCardPersonName: parsed.businessCardPersonName ?? '',
+    businessCardPersonTitle: parsed.businessCardPersonTitle ?? '',
+    businessCardAccentColors:
+      parsed.businessCardAccentColors && typeof parsed.businessCardAccentColors === 'object'
+        ? migrateBusinessCardAccentColors(parsed.businessCardAccentColors as Partial<Record<string, string>>)
+        : {},
   };
 }
 
