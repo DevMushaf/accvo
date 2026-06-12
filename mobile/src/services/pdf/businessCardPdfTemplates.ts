@@ -33,6 +33,7 @@ const NAVY_DEEP = '#0D1F3C';
 const PRESTIGE_NAVY = '#1B2A41';
 const EXECUTIVE_GOLD = '#C9A227';
 const EXEC_TEXT_WRAP = 'overflow-wrap:normal;word-break:normal;';
+const ORBIT_TEXT_WRAP = 'overflow-wrap:normal;word-break:normal;';
 
 const CARD_PRINT_WIDTH = '3.5in';
 const CARD_PRINT_HEIGHT = '2in';
@@ -315,54 +316,70 @@ function buildExecutiveBack(ctx: BusinessCardPdfContext): string {
 }
 
 /* ─── Orbit (concentric navy) ─── */
+function orbitPalette(settings: AppSettings): { navy: string; lineAccent: string } {
+  const navy = getCardAccentColor(settings.businessCardTemplate, settings.businessCardAccentColors);
+  const lineAccent = mixHex(navy, '#ffffff', 0.62);
+  return { navy, lineAccent };
+}
+
 function buildOrbitFront(ctx: BusinessCardPdfContext): string {
   const { settings } = ctx;
   const lctx = logoCtx(ctx);
-  const { navy } = palette(settings);
-  const site = escapeHtml(cardWebsite(settings));
+  const { navy } = orbitPalette(settings);
+  const site = cardFrontWebsite(settings);
+  const websitePill = site
+    ? `<div style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;border-radius:999px;padding:4px 18px;z-index:2;">
+        <p style="margin:0;font-family:${SPLIT_FONT};font-size:6.5px;font-weight:600;color:${navy};letter-spacing:0.04em;${ORBIT_TEXT_WRAP}">${site}</p>
+      </div>`
+    : '';
   return `
-  <div style="height:100%;width:100%;background:${navy};position:relative;overflow:hidden;box-sizing:border-box;">
+  <div style="height:100%;width:100%;background:${navy};position:relative;overflow:hidden;box-sizing:border-box;font-family:${SPLIT_FONT};">
     <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.15;" viewBox="0 0 340 204">
       <circle cx="170" cy="102" r="40" fill="none" stroke="#fff" stroke-width="1"/>
       <circle cx="170" cy="102" r="70" fill="none" stroke="#fff" stroke-width="1"/>
       <circle cx="170" cy="102" r="100" fill="none" stroke="#fff" stroke-width="1"/>
       <circle cx="170" cy="102" r="130" fill="none" stroke="#fff" stroke-width="0.5"/>
     </svg>
-    <div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px;box-sizing:border-box;">
+    <div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px 14px ${site ? '32px' : '14px'};box-sizing:border-box;">
       ${buildCardLogo(lctx, 42, { onDark: true })}
-      <p style="margin:10px 0 0;font-size:12px;font-weight:700;color:#fff;letter-spacing:0.08em;text-transform:uppercase;">${cardDisplayName(settings)}</p>
-      <p style="margin:3px 0 0;font-size:7px;color:rgba(255,255,255,0.8);letter-spacing:0.1em;text-transform:uppercase;">${cardTagline(settings)}</p>
+      <p style="margin:10px 0 0;font-family:${SPLIT_FONT};font-size:12px;font-weight:700;color:#fff;letter-spacing:0.08em;text-transform:uppercase;line-height:1.15;${ORBIT_TEXT_WRAP}">${cardDisplayName(settings)}</p>
+      <p style="margin:3px 0 0;font-family:${SPLIT_FONT};font-size:7px;font-weight:500;color:rgba(255,255,255,0.8);letter-spacing:0.1em;text-transform:uppercase;line-height:1.35;${ORBIT_TEXT_WRAP}">${cardTagline(settings)}</p>
     </div>
-    <div style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;border-radius:999px;padding:4px 18px;z-index:2;">
-      <p style="margin:0;font-size:6.5px;font-weight:600;color:${navy};">${site}</p>
-    </div>
+    ${websitePill}
   </div>`;
 }
 
 function buildOrbitBack(ctx: BusinessCardPdfContext): string {
   const { settings } = ctx;
   const lctx = logoCtx(ctx);
-  const { navy } = palette(settings);
+  const { navy, lineAccent } = orbitPalette(settings);
   return `
-  <div style="height:100%;width:100%;background:#fff;display:flex;box-sizing:border-box;overflow:hidden;">
-    <div style="width:38%;padding:12px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #E5E7EB;box-sizing:border-box;">
+  <div style="height:100%;width:100%;background:#fff;display:flex;box-sizing:border-box;overflow:hidden;font-family:${SPLIT_FONT};">
+    <div style="width:38%;padding:12px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid ${lineAccent};box-sizing:border-box;">
       ${buildCardLogo(lctx, 30, { onDark: false })}
-      <p style="margin:6px 0 0;font-size:6px;font-weight:700;color:${navy};letter-spacing:0.06em;text-transform:uppercase;text-align:center;">${cardDisplayName(settings)}</p>
-      <p style="margin:2px 0 8px;font-size:5.5px;color:#6B7280;text-align:center;">${cardTagline(settings)}</p>
-      <div style="width:80%;height:1px;background:#E5E7EB;"></div>
+      <p style="margin:6px 0 0;font-family:${SPLIT_FONT};font-size:6px;font-weight:700;color:${navy};letter-spacing:0.06em;text-transform:uppercase;text-align:center;line-height:1.3;${ORBIT_TEXT_WRAP}">${cardDisplayName(settings)}</p>
+      <p style="margin:2px 0 8px;font-family:${SPLIT_FONT};font-size:5.5px;font-weight:500;color:${navy};opacity:0.7;text-align:center;line-height:1.35;${ORBIT_TEXT_WRAP}">${cardTagline(settings)}</p>
+      <div style="width:80%;height:1px;background:${lineAccent};"></div>
       <div style="margin-top:8px;">${buildCardQrCode(settings, 32, navy)}</div>
     </div>
-    <div style="flex:1;padding:10px 10px 8px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;">
+    <div style="flex:1;padding:10px 10px 8px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;min-width:0;">
       <div style="background:${navy};border-radius:999px;padding:5px 10px;display:flex;align-items:center;gap:6px;margin-bottom:6px;">
         <div style="width:18px;height:18px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="2.2" stroke="${navy}" stroke-width="1.3"/><path d="M3.5 13c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="${navy}" stroke-width="1.3" stroke-linecap="round"/></svg>
         </div>
-        <div>
-          <p style="margin:0;font-size:8px;font-weight:700;color:#fff;letter-spacing:0.04em;text-transform:uppercase;">${cardPersonName(settings)}</p>
-          <p style="margin:0;font-size:6px;color:rgba(255,255,255,0.8);text-transform:uppercase;">${cardPersonTitle(settings)}</p>
+        <div style="min-width:0;">
+          <p style="margin:0;font-family:${SPLIT_FONT};font-size:8px;font-weight:700;color:#fff;letter-spacing:0.04em;text-transform:uppercase;line-height:1.2;${ORBIT_TEXT_WRAP}">${cardPersonName(settings)}</p>
+          <p style="margin:0;font-family:${SPLIT_FONT};font-size:6px;font-weight:500;color:rgba(255,255,255,0.8);text-transform:uppercase;line-height:1.3;${ORBIT_TEXT_WRAP}">${cardPersonTitle(settings)}</p>
         </div>
       </div>
-      ${buildCardContactPills(settings, { barBg: '#F3F4F6', textColor: navy, iconBg: navy, svgIcons: true })}
+      ${buildCardContactPills(settings, {
+        barBg: '#F3F4F6',
+        textColor: navy,
+        iconBg: navy,
+        svgIcons: true,
+        fontFamily: SPLIT_FONT,
+        fillWidth: true,
+      })}
     </div>
   </div>`;
 }

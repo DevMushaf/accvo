@@ -397,17 +397,30 @@ function legacyEmoji(type: ContactIconType): string {
 
 export function buildCardContactPills(
   settings: AppSettings,
-  options: { barBg: string; textColor: string; iconBg: string; svgIcons?: boolean },
+  options: {
+    barBg: string;
+    textColor: string;
+    iconBg: string;
+    svgIcons?: boolean;
+    fontFamily?: string;
+    fillWidth?: boolean;
+  },
 ): string {
   const rows = getContactRows(settings);
+  const fontFamily = options.fontFamily ? `font-family:${options.fontFamily};` : '';
+  const lineStyle = options.fillWidth ? 'overflow-wrap:normal;word-break:normal;' : '';
+  const textStyle = options.fillWidth
+    ? `flex:1;min-width:0;font-size:6.5px;color:${options.textColor};line-height:1.3;${fontFamily}${lineStyle}`
+    : `font-size:6.5px;color:${options.textColor};line-height:1.3;min-width:0;${fontFamily}${lineStyle}`;
+
   if (rows.length === 0) {
-    return `<p style="margin:0;font-size:7px;color:${options.textColor};opacity:0.7;">Add contact in Settings</p>`;
+    return `<p style="margin:0;font-size:7px;color:${options.textColor};opacity:0.7;${fontFamily}">Add contact in Settings</p>`;
   }
 
   return rows
     .map(
       (row) => `
-    <div style="display:flex;align-items:center;gap:6px;margin:4px 0;background:${options.barBg};border-radius:999px;padding:4px 8px 4px 4px;">
+    <div style="display:flex;align-items:center;gap:6px;margin:4px 0;background:${options.barBg};border-radius:999px;padding:4px 8px 4px 4px;${options.fillWidth ? 'width:100%;' : ''}">
       <div style="width:16px;height:16px;border-radius:50%;background:${options.iconBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         ${
           options.svgIcons
@@ -415,8 +428,8 @@ export function buildCardContactPills(
             : `<span style="color:#fff;font-size:7px;">${legacyEmoji(row.type)}</span>`
         }
       </div>
-      <div style="font-size:6.5px;color:${options.textColor};line-height:1.3;min-width:0;">
-        ${row.lines.map((line) => `<div>${escapeHtml(line)}</div>`).join('')}
+      <div style="${textStyle}">
+        ${row.lines.map((line) => `<div style="${lineStyle}">${escapeHtml(line)}</div>`).join('')}
       </div>
     </div>`,
     )
