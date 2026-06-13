@@ -276,6 +276,7 @@ export function buildCardContactBadgeRows(
     fontSize?: string;
     iconSize?: number;
     badgeSize?: number;
+    badgeRadius?: string;
     gap?: string;
     iconColumnWidth?: number;
     fontFamily?: string;
@@ -286,6 +287,7 @@ export function buildCardContactBadgeRows(
   const fontSize = options.fontSize ?? '6px';
   const iconSize = options.iconSize ?? 9;
   const badgeSize = options.badgeSize ?? 16;
+  const badgeRadius = options.badgeRadius ?? '50%';
   const iconColumnWidth = options.iconColumnWidth ?? badgeSize;
   const gap = options.gap ?? '5px';
   const lineHeight = 1.38;
@@ -312,7 +314,7 @@ export function buildCardContactBadgeRows(
       return `
     <div style="display:flex;align-items:${rowAlign};gap:6px;margin:${gap} 0;width:100%;">
       <div style="${iconCol}">
-        <div style="width:${badgeSize}px;height:${badgeSize}px;border-radius:50%;background:${options.badgeBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <div style="width:${badgeSize}px;height:${badgeSize}px;border-radius:${badgeRadius};background:${options.badgeBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           ${cardContactIconSvg(row.type, iconSize, options.iconColor)}
         </div>
       </div>

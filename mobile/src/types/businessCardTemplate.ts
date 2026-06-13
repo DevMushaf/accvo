@@ -2,7 +2,7 @@ import { isLightHex } from '@/services/pdf/cardColorUtils';
 
 export type BusinessCardTemplate = 'wave' | 'executive' | 'orbit' | 'royal' | 'prestige';
 
-const BRAND_COLOR_TEMPLATES = new Set<BusinessCardTemplate>(['wave', 'executive', 'orbit']);
+const BRAND_COLOR_TEMPLATES = new Set<BusinessCardTemplate>(['wave', 'executive', 'orbit', 'royal']);
 
 export interface BusinessCardTemplateOption {
   id: BusinessCardTemplate;
@@ -83,6 +83,19 @@ export const NAVY_ACCENT_PRESETS: string[] = [
   '#7C2D12',
 ];
 
+/** Dark brand accents for Royal (purple-friendly; no gold). */
+export const ROYAL_ACCENT_PRESETS: string[] = [
+  '#5B2C83',
+  '#3D1F5C',
+  '#1B2A41',
+  '#0D1F3C',
+  '#1A2744',
+  '#2D3748',
+  '#1E3A5F',
+  '#0F766E',
+  '#7C2D12',
+];
+
 export function getCardAccentPresets(template: BusinessCardTemplate): string[] {
   switch (template) {
     case 'wave':
@@ -90,8 +103,7 @@ export function getCardAccentPresets(template: BusinessCardTemplate): string[] {
     case 'orbit':
       return NAVY_ACCENT_PRESETS;
     case 'royal':
-    case 'prestige':
-      return CARD_ACCENT_PRESETS;
+      return ROYAL_ACCENT_PRESETS;
     default:
       return CARD_ACCENT_PRESETS;
   }

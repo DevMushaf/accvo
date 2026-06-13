@@ -34,6 +34,9 @@ const PRESTIGE_NAVY = '#1B2A41';
 const EXECUTIVE_GOLD = '#C9A227';
 const EXEC_TEXT_WRAP = 'overflow-wrap:normal;word-break:normal;';
 const ORBIT_TEXT_WRAP = 'overflow-wrap:normal;word-break:normal;';
+const ROYAL_TEXT_WRAP = 'overflow-wrap:normal;word-break:normal;';
+const ROYAL_GOLD = '#C5A059';
+const ROYAL_PAPER = '#FBFAF8';
 
 const CARD_PRINT_WIDTH = '3.5in';
 const CARD_PRINT_HEIGHT = '2in';
@@ -385,48 +388,86 @@ function buildOrbitBack(ctx: BusinessCardPdfContext): string {
 }
 
 /* ─── Royal (purple) ─── */
+function royalPalette(settings: AppSettings): { purple: string; lineAccent: string; purpleDeep: string } {
+  const purple = getCardAccentColor(settings.businessCardTemplate, settings.businessCardAccentColors);
+  return {
+    purple,
+    lineAccent: mixHex(purple, '#ffffff', 0.62),
+    purpleDeep: mixHex(purple, '#000000', 0.14),
+  };
+}
+
 function buildRoyalFront(ctx: BusinessCardPdfContext): string {
   const { settings } = ctx;
   const lctx = logoCtx(ctx);
-  const { purple } = palette(settings);
-  const site = escapeHtml(cardWebsite(settings));
+  const { purple, purpleDeep } = royalPalette(settings);
+  const site = cardFrontWebsite(settings);
+  const websiteCapsule = site
+    ? `<div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:#fff;border-radius:999px;padding:4px 16px;z-index:2;max-width:86%;box-sizing:border-box;">
+        <p style="margin:0;font-family:${SPLIT_FONT};font-size:6.5px;font-weight:600;color:${purple};letter-spacing:0.06em;text-align:center;${ROYAL_TEXT_WRAP}">${site}</p>
+      </div>`
+    : '';
   return `
-  <div style="height:100%;width:100%;background:${purple};position:relative;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px;">
-    <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,0.35);transform:translateY(-50%);"></div>
-    <div style="position:relative;z-index:1;background:${purple};padding:0 12px;">
-      ${buildCardLogo(lctx, 40, { onDark: true })}
-      <p style="margin:10px 0 0;font-size:12px;font-weight:700;color:#fff;letter-spacing:0.1em;text-transform:uppercase;">${cardDisplayName(settings)}</p>
-      <p style="margin:3px 0 0;font-size:7px;color:rgba(255,255,255,0.85);letter-spacing:0.12em;text-transform:uppercase;">${cardTagline(settings)}</p>
+  <div style="height:100%;width:100%;background:linear-gradient(180deg, ${purple} 0%, ${purpleDeep} 100%);position:relative;overflow:hidden;box-sizing:border-box;font-family:${SPLIT_FONT};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px 16px ${site ? '32px' : '16px'};">
+    <div style="box-sizing:border-box;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12);position:absolute;inset:8px;pointer-events:none;border-radius:2px;"></div>
+    <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;max-width:88%;min-width:0;">
+      <div style="width:72px;height:1px;background:${ROYAL_GOLD};opacity:0.85;margin-bottom:5px;"></div>
+      <div style="width:100px;height:1px;background:rgba(255,255,255,0.38);"></div>
+      <div style="padding:14px 16px 12px;min-width:0;width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;">
+        <div style="display:flex;justify-content:center;width:100%;">${buildCardLogo(lctx, 42, { onDark: true })}</div>
+        <p style="margin:11px 0 0;font-family:${SPLIT_FONT};font-size:12px;font-weight:700;color:#fff;letter-spacing:0.12em;text-transform:uppercase;line-height:1.15;text-align:center;width:100%;${ROYAL_TEXT_WRAP}">${cardDisplayName(settings)}</p>
+        <p style="margin:4px 0 0;font-family:${SPLIT_FONT};font-size:7px;font-weight:500;color:rgba(255,255,255,0.8);letter-spacing:0.14em;text-transform:uppercase;line-height:1.35;text-align:center;width:100%;${ROYAL_TEXT_WRAP}">${cardTagline(settings)}</p>
+      </div>
+      <div style="width:100px;height:1px;background:rgba(255,255,255,0.38);"></div>
+      <div style="width:72px;height:1px;background:rgba(255,255,255,0.22);margin-top:5px;"></div>
     </div>
-    <p style="position:absolute;bottom:10px;margin:0;font-size:6.5px;color:rgba(255,255,255,0.9);">${site}</p>
+    ${websiteCapsule}
   </div>`;
 }
 
 function buildRoyalBack(ctx: BusinessCardPdfContext): string {
   const { settings } = ctx;
-  const lctx = logoCtx(ctx);
-  const { purple, purpleDark } = palette(settings);
-  const site = escapeHtml(cardWebsite(settings));
+  const { purple, lineAccent } = royalPalette(settings);
+  const qrPlateBg = mixHex(purple, ROYAL_PAPER, 0.88);
+  const site = cardFrontWebsite(settings);
+  const contactRows = buildCardContactBadgeRows(getContactRows(settings), {
+    textColor: purple,
+    badgeBg: purple,
+    iconColor: '#fff',
+    fontSize: '6.5px',
+    iconSize: 7,
+    badgeSize: 14,
+    badgeRadius: '3px',
+    iconColumnWidth: 14,
+    gap: '5px',
+    fontFamily: SPLIT_FONT,
+    fillWidth: true,
+  });
+  const footer = site
+    ? `<div style="height:18px;background:${purple};display:flex;align-items:center;justify-content:center;padding:0 12px;flex-shrink:0;">
+        <p style="margin:0;font-family:${SPLIT_FONT};font-size:6px;font-weight:500;color:#fff;letter-spacing:0.08em;${ROYAL_TEXT_WRAP}">${site}</p>
+      </div>`
+    : '';
   return `
-  <div style="height:100%;width:100%;background:#F9FAFB;position:relative;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;">
-    <div style="position:absolute;top:0;left:0;width:28px;height:28px;background:${purple};"></div>
-    <div style="flex:1;padding:14px 14px 8px;box-sizing:border-box;display:flex;justify-content:space-between;">
-      <div style="flex:1;min-width:0;padding-right:8px;">
-        <p style="margin:0;font-size:11px;font-weight:700;color:${purpleDark};letter-spacing:0.05em;text-transform:uppercase;">${cardPersonName(settings)}</p>
-        <p style="margin:2px 0 8px;font-size:7px;color:#6B7280;text-transform:uppercase;">${cardPersonTitle(settings)}</p>
-        <div style="width:70%;height:1px;background:${purple};margin-bottom:8px;"></div>
-        ${buildCardContactRows(settings, '#374151', { fontSize: '6.5px', iconSize: '7px', svgIcons: true })}
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-        ${buildCardQrCode(settings, 30, purpleDark)}
-        <div style="text-align:right;">
-          ${buildCardLogo(lctx, 22, { onDark: false })}
-          <p style="margin:4px 0 0;font-size:5.5px;font-weight:700;color:${purple};letter-spacing:0.06em;text-transform:uppercase;">${cardDisplayName(settings)}</p>
+  <div style="height:100%;width:100%;background:${ROYAL_PAPER};position:relative;overflow:hidden;box-sizing:border-box;font-family:${SPLIT_FONT};display:flex;flex-direction:column;">
+    <div style="flex:1;display:flex;min-height:0;overflow:hidden;">
+      <div style="width:9px;background:${purple};flex-shrink:0;"></div>
+      <div style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;">
+        <div style="flex:1;padding:14px 12px 10px 12px;box-sizing:border-box;display:flex;align-items:stretch;min-height:0;overflow:hidden;">
+          <div style="flex:1;min-width:0;padding-right:10px;overflow:hidden;display:flex;flex-direction:column;">
+            <p style="margin:0;font-family:${SPLIT_FONT};font-size:11px;font-weight:700;color:${purple};letter-spacing:0.06em;text-transform:uppercase;line-height:1.2;${ROYAL_TEXT_WRAP}">${cardPersonName(settings)}</p>
+            <p style="margin:3px 0 0;font-family:${SPLIT_FONT};font-size:7px;font-weight:500;color:${purple};opacity:0.7;letter-spacing:0.03em;line-height:1.3;${ROYAL_TEXT_WRAP}">${cardPersonTitle(settings)}</p>
+            <div style="width:100%;height:1px;background:${purple};opacity:0.35;margin:8px 0;flex-shrink:0;"></div>
+            <div style="flex:1;min-height:0;overflow:hidden;">${contactRows}</div>
+          </div>
+          <div style="width:72px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0 2px;box-sizing:border-box;">
+            <div style="padding:5px;background:${qrPlateBg};border:1px solid ${lineAccent};border-radius:6px;box-sizing:border-box;">
+              ${buildCardQrCode(settings, 34, purple, ROYAL_PAPER)}
+            </div>
+          </div>
         </div>
+        ${footer}
       </div>
-    </div>
-    <div style="height:20px;background:${purple};display:flex;align-items:center;justify-content:flex-end;padding:0 12px;flex-shrink:0;">
-      <p style="margin:0;font-size:6px;color:#fff;">${site}</p>
     </div>
   </div>`;
 }
