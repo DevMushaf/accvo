@@ -16,6 +16,27 @@ export interface ContactRow {
   lines: string[];
 }
 
+/** Wrap phone/email/address inside narrow flex columns on business cards. */
+const CARD_CONTACT_LINE_WRAP =
+  'overflow-wrap:break-word;word-break:break-word;white-space:normal;max-width:100%;';
+
+function cardContactTextStyle(
+  color: string,
+  fontSize: string,
+  lineHeight: number,
+  fontFamily: string,
+  fillWidth: boolean,
+): string {
+  const base = `color:${color};font-size:${fontSize};line-height:${lineHeight};${fontFamily}${CARD_CONTACT_LINE_WRAP}`;
+  return fillWidth
+    ? `flex:1 1 0%;min-width:0;max-width:100%;${base}`
+    : `min-width:0;max-width:100%;${base}`;
+}
+
+function cardContactRowWrap(fillWidth: boolean, extra = ''): string {
+  return fillWidth ? `width:100%;max-width:100%;min-width:0;box-sizing:border-box;${extra}` : extra;
+}
+
 export function cardWebsite(settings: AppSettings): string {
   const raw = settings.businessWebsite?.trim();
   if (raw) return raw.replace(/^https?:\/\//i, '');
@@ -277,6 +298,7 @@ export function buildCardContactBadgeRows(
     iconSize?: number;
     badgeSize?: number;
     badgeRadius?: string;
+    badgeBorder?: string;
     gap?: string;
     iconColumnWidth?: number;
     fontFamily?: string;
@@ -288,14 +310,12 @@ export function buildCardContactBadgeRows(
   const iconSize = options.iconSize ?? 9;
   const badgeSize = options.badgeSize ?? 16;
   const badgeRadius = options.badgeRadius ?? '50%';
+  const badgeBorder = options.badgeBorder ? `border:1px solid ${options.badgeBorder};` : '';
   const iconColumnWidth = options.iconColumnWidth ?? badgeSize;
   const gap = options.gap ?? '5px';
   const lineHeight = 1.38;
   const fontFamily = options.fontFamily ? `font-family:${options.fontFamily};` : '';
-  const lineStyle = 'overflow-wrap:normal;word-break:normal;';
-  const textStyle = options.fillWidth
-    ? `flex:1;min-width:0;color:${options.textColor};font-size:${fontSize};line-height:${lineHeight};${fontFamily}${lineStyle}`
-    : `color:${options.textColor};font-size:${fontSize};line-height:${lineHeight};min-width:0;${fontFamily}${lineStyle}`;
+  const textStyle = cardContactTextStyle(options.textColor, fontSize, lineHeight, fontFamily, Boolean(options.fillWidth));
 
   if (rows.length === 0) {
     return `<p style="margin:0;font-size:${fontSize};color:${options.textColor};opacity:0.75;${fontFamily}">Add contact in Settings</p>`;
@@ -312,14 +332,14 @@ export function buildCardContactBadgeRows(
         row.lines.length,
       );
       return `
-    <div style="display:flex;align-items:${rowAlign};gap:6px;margin:${gap} 0;width:100%;">
+    <div style="display:flex;align-items:${rowAlign};gap:6px;margin:${gap} 0;${cardContactRowWrap(Boolean(options.fillWidth))}">
       <div style="${iconCol}">
-        <div style="width:${badgeSize}px;height:${badgeSize}px;border-radius:${badgeRadius};background:${options.badgeBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <div style="width:${badgeSize}px;height:${badgeSize}px;border-radius:${badgeRadius};background:${options.badgeBg};${badgeBorder}display:flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box;">
           ${cardContactIconSvg(row.type, iconSize, options.iconColor)}
         </div>
       </div>
       <div style="${textStyle}">
-        ${row.lines.map((line) => `<div style="${lineStyle}">${escapeHtml(line)}</div>`).join('')}
+        ${row.lines.map((line) => `<div style="${CARD_CONTACT_LINE_WRAP}">${escapeHtml(line)}</div>`).join('')}
       </div>
     </div>`;
     })
@@ -337,6 +357,7 @@ export function buildCardContactRows(
     fontFamily?: string;
     svgIcons?: boolean;
     fillWidth?: boolean;
+    iconColor?: string;
   } = {},
 ): string {
   const rows = getContactRows(settings);
@@ -346,11 +367,9 @@ export function buildCardContactRows(
   const iconPx = parseFloat(iconSize) || 8;
   const lineHeight = 1.35;
   const iconColumnWidth = options.iconColumnWidth ?? 14;
+  const iconColor = options.iconColor ?? color;
   const fontFamily = options.fontFamily ? `font-family:${options.fontFamily};` : '';
-  const lineStyle = 'overflow-wrap:normal;word-break:normal;';
-  const textStyle = options.fillWidth
-    ? `flex:1;min-width:0;color:${color};font-size:${fontSize};line-height:${lineHeight};${fontFamily}${lineStyle}`
-    : `color:${color};font-size:${fontSize};line-height:${lineHeight};${fontFamily}${lineStyle}`;
+  const textStyle = cardContactTextStyle(color, fontSize, lineHeight, fontFamily, Boolean(options.fillWidth));
 
   if (rows.length === 0) {
     return `<p style="margin:0;font-size:${fontSize};color:${color};opacity:0.7;${fontFamily}">Add contact in Settings</p>`;
@@ -364,18 +383,18 @@ export function buildCardContactRows(
           ? contactIconColumnCentered(iconColumnWidth)
           : contactIconColumnStyle(fontSize, lineHeight, iconColumnWidth);
       const iconMarkup = options.svgIcons
-        ? cardContactIconCell(row.type, iconPx, color, {
+        ? cardContactIconCell(row.type, iconPx, iconColor, {
             fontSize,
             lineHeight,
             cellWidth: iconColumnWidth,
             lineCount: row.lines.length,
           })
-        : `<div style="${iconCol}"><span style="color:${color};font-size:${iconSize};line-height:1;opacity:0.85;">${legacyEmoji(row.type)}</span></div>`;
+        : `<div style="${iconCol}"><span style="color:${iconColor};font-size:${iconSize};line-height:1;opacity:0.85;">${legacyEmoji(row.type)}</span></div>`;
       return `
-    <div style="display:flex;align-items:${rowAlign};gap:6px;margin:${gap} 0;${options.fillWidth ? 'width:100%;' : ''}">
+    <div style="display:flex;align-items:${rowAlign};gap:6px;margin:${gap} 0;${cardContactRowWrap(Boolean(options.fillWidth))}">
       ${iconMarkup}
       <div style="${textStyle}">
-        ${row.lines.map((line) => `<div style="${lineStyle}">${escapeHtml(line)}</div>`).join('')}
+        ${row.lines.map((line) => `<div style="${CARD_CONTACT_LINE_WRAP}">${escapeHtml(line)}</div>`).join('')}
       </div>
     </div>`;
     })
@@ -410,10 +429,13 @@ export function buildCardContactPills(
 ): string {
   const rows = getContactRows(settings);
   const fontFamily = options.fontFamily ? `font-family:${options.fontFamily};` : '';
-  const lineStyle = options.fillWidth ? 'overflow-wrap:normal;word-break:normal;' : '';
-  const textStyle = options.fillWidth
-    ? `flex:1;min-width:0;font-size:6.5px;color:${options.textColor};line-height:1.3;${fontFamily}${lineStyle}`
-    : `font-size:6.5px;color:${options.textColor};line-height:1.3;min-width:0;${fontFamily}${lineStyle}`;
+  const textStyle = cardContactTextStyle(
+    options.textColor,
+    '6.5px',
+    1.3,
+    fontFamily,
+    Boolean(options.fillWidth),
+  );
 
   if (rows.length === 0) {
     return `<p style="margin:0;font-size:7px;color:${options.textColor};opacity:0.7;${fontFamily}">Add contact in Settings</p>`;
@@ -422,7 +444,7 @@ export function buildCardContactPills(
   return rows
     .map(
       (row) => `
-    <div style="display:flex;align-items:center;gap:6px;margin:4px 0;background:${options.barBg};border-radius:999px;padding:4px 8px 4px 4px;${options.fillWidth ? 'width:100%;' : ''}">
+    <div style="display:flex;align-items:center;gap:6px;margin:4px 0;background:${options.barBg};border-radius:999px;padding:4px 8px 4px 4px;${cardContactRowWrap(Boolean(options.fillWidth))}">
       <div style="width:16px;height:16px;border-radius:50%;background:${options.iconBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         ${
           options.svgIcons
@@ -431,18 +453,10 @@ export function buildCardContactPills(
         }
       </div>
       <div style="${textStyle}">
-        ${row.lines.map((line) => `<div style="${lineStyle}">${escapeHtml(line)}</div>`).join('')}
+        ${row.lines.map((line) => `<div style="${CARD_CONTACT_LINE_WRAP}">${escapeHtml(line)}</div>`).join('')}
       </div>
     </div>`,
     )
     .join('');
 }
 
-export function buildPrestigeIconStrip(types: ContactIconType[], color: string): string {
-  return types
-    .map(
-      (type) =>
-        `<div style="display:flex;align-items:center;justify-content:center;height:14px;">${cardContactIconSvg(type, 9, color)}</div>`,
-    )
-    .join('');
-}

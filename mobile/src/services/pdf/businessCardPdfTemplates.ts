@@ -8,7 +8,6 @@ import {
   buildCardContactRows,
   buildCardLogo,
   buildCardQrCode,
-  buildPrestigeIconStrip,
   cardDisplayName,
   buildCardContactBadgeRows,
   cardFrontWebsite,
@@ -17,7 +16,6 @@ import {
   cardPersonName,
   cardPersonTitle,
   cardTagline,
-  cardWebsite,
   type CardLogoContext,
 } from '@/services/pdf/businessCardHtmlUtils';
 import { escapeHtml } from '@/services/pdf/pdfHtmlUtils';
@@ -43,29 +41,8 @@ const CARD_PRINT_HEIGHT = '2in';
 const CARD_PREVIEW_WIDTH = 340;
 const CARD_PREVIEW_HEIGHT = 204;
 
-interface CardPalette {
-  accent: string;
-  accentDark: string;
-  navy: string;
-  gold: string;
-  purple: string;
-  purpleDark: string;
-}
-
 function logoCtx(ctx: BusinessCardPdfContext): CardLogoContext {
   return { settings: ctx.settings, logoDataUri: ctx.logoDataUri };
-}
-
-function palette(settings: AppSettings): CardPalette {
-  const accent = getCardAccentColor(settings.businessCardTemplate, settings.businessCardAccentColors);
-  return {
-    accent,
-    accentDark: accent,
-    navy: accent,
-    gold: accent,
-    purple: accent,
-    purpleDark: accent,
-  };
 }
 
 function printWatermark(): string {
@@ -242,7 +219,7 @@ function buildWaveBack(ctx: BusinessCardPdfContext): string {
   return `
   <div style="height:100%;width:100%;background:#fff;position:relative;overflow:hidden;box-sizing:border-box;font-family:${SPLIT_FONT};">
     ${buildSplitDiagonalArt(navy)}
-    <div style="position:absolute;top:0;left:0;width:61%;height:100%;z-index:1;box-sizing:border-box;padding:16px 10px 14px 14px;display:flex;flex-direction:column;">
+    <div style="position:absolute;top:0;left:0;width:61%;height:100%;z-index:1;box-sizing:border-box;padding:16px 10px 14px 14px;display:flex;flex-direction:column;min-width:0;overflow:hidden;">
       <div>
         <p style="margin:0;font-family:${SPLIT_FONT};font-size:11px;font-weight:700;color:#fff;letter-spacing:0.08em;text-transform:uppercase;line-height:1.2;">${cardPersonName(settings)}</p>
         <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
@@ -250,7 +227,7 @@ function buildWaveBack(ctx: BusinessCardPdfContext): string {
           <div style="width:30px;height:1.5px;background:${lineAccent};flex-shrink:0;"></div>
         </div>
       </div>
-      <div style="margin-top:12px;flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;overflow:hidden;">
+      <div style="margin-top:12px;flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;min-width:0;overflow:hidden;width:100%;">
         ${contactRows}
       </div>
     </div>
@@ -473,60 +450,110 @@ function buildRoyalBack(ctx: BusinessCardPdfContext): string {
 }
 
 /* ─── Prestige (white & gold / navy back) ─── */
+const PRESTIGE_PAPER = '#FAFAF8';
+const PRESTIGE_TEXT_WRAP = 'overflow-wrap:normal;word-break:normal;';
+
+function prestigePalette(settings: AppSettings): { navy: string; gold: string; lineAccent: string } {
+  const gold = getCardAccentColor(settings.businessCardTemplate, settings.businessCardAccentColors);
+  return { navy: PRESTIGE_NAVY, gold, lineAccent: mixHex(gold, '#ffffff', 0.58) };
+}
+
+function prestigeTaglineHtml(settings: AppSettings, navy: string): string {
+  const raw = settings.businessTagline?.trim();
+  if (!raw) return '';
+  const color = mixHex(navy, '#8B95A8', 0.42);
+  return `<p style="margin:3px 0 0;font-family:${SPLIT_FONT};font-size:7px;font-weight:500;color:${color};letter-spacing:0.12em;text-transform:uppercase;line-height:1.35;${PRESTIGE_TEXT_WRAP}">${escapeHtml(raw)}</p>`;
+}
+
+function prestigePersonHeader(settings: AppSettings, gold: string): string {
+  const name = settings.businessCardPersonName?.trim();
+  const title = settings.businessCardPersonTitle?.trim();
+  if (!name && !title) return '';
+  const nameBlock = name
+    ? `<p style="margin:0;font-family:${SPLIT_FONT};font-size:10px;font-weight:700;color:#fff;letter-spacing:0.05em;text-transform:uppercase;line-height:1.2;${PRESTIGE_TEXT_WRAP}">${escapeHtml(name)}</p>`
+    : '';
+  const titleBlock = title
+    ? `<p style="margin:${name ? '2px' : '0'} 0 8px;font-family:${SPLIT_FONT};font-size:7px;font-weight:500;color:${gold};text-transform:uppercase;line-height:1.3;${PRESTIGE_TEXT_WRAP}">${escapeHtml(title)}</p>`
+    : name
+      ? `<div style="margin-bottom:8px;"></div>`
+      : '';
+  return `${nameBlock}${titleBlock}`;
+}
+
 function buildPrestigeFront(ctx: BusinessCardPdfContext): string {
   const { settings } = ctx;
   const lctx = logoCtx(ctx);
-  const { gold } = palette(settings);
-  const site = escapeHtml(cardWebsite(settings));
+  const { navy, gold, lineAccent } = prestigePalette(settings);
+  const site = cardFrontWebsite(settings);
+  const footer = site
+    ? `<div style="height:22px;background:${navy};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <p style="margin:0;font-family:${SPLIT_FONT};font-size:6.5px;font-weight:500;color:#fff;letter-spacing:0.06em;${PRESTIGE_TEXT_WRAP}">${site}</p>
+      </div>`
+    : '';
   return `
-  <div style="height:100%;width:100%;background:#fff;position:relative;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;">
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px;position:relative;">
-      <div style="position:absolute;top:42%;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,${gold},transparent);"></div>
-      ${buildCardLogo(lctx, 38, { onDark: false })}
-      <p style="margin:10px 0 0;font-size:12px;font-weight:700;color:#111;letter-spacing:0.08em;text-transform:uppercase;">${cardDisplayName(settings)}</p>
-      <p style="margin:3px 0 0;font-size:7px;color:#6B7280;letter-spacing:0.12em;text-transform:uppercase;">${cardTagline(settings)}</p>
+  <div style="height:100%;width:100%;background:${PRESTIGE_PAPER};position:relative;overflow:hidden;box-sizing:border-box;font-family:${SPLIT_FONT};display:flex;flex-direction:column;">
+    <div style="box-sizing:border-box;box-shadow:inset 0 0 0 1px rgba(27,42,65,0.08);position:absolute;inset:7px;pointer-events:none;border-radius:2px;"></div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px 14px ${site ? '10px' : '14px'};min-height:0;position:relative;z-index:1;">
+      <div style="display:flex;align-items:center;justify-content:center;width:100%;">
+        ${buildCardLogo(lctx, 38, { onDark: false })}
+      </div>
+      <div style="width:72px;height:1px;background:${gold};opacity:0.88;margin:10px 0 0;"></div>
+      <div style="width:100px;height:1px;background:${lineAccent};opacity:0.65;margin-top:4px;"></div>
+      <p style="margin:8px 0 0;font-family:${SPLIT_FONT};font-size:12px;font-weight:700;color:${navy};letter-spacing:0.08em;text-transform:uppercase;line-height:1.15;${PRESTIGE_TEXT_WRAP}">${cardDisplayName(settings)}</p>
+      ${prestigeTaglineHtml(settings, navy)}
     </div>
-    <div style="height:24px;background:${PRESTIGE_NAVY};display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
-      <div style="position:absolute;top:-3px;width:36px;height:4px;background:${gold};border-radius:2px;"></div>
-      <p style="margin:0;font-size:6.5px;color:#fff;letter-spacing:0.06em;">${site}</p>
-    </div>
+    ${footer}
   </div>`;
 }
 
 function buildPrestigeBack(ctx: BusinessCardPdfContext): string {
   const { settings } = ctx;
   const lctx = logoCtx(ctx);
-  const { gold } = palette(settings);
-  const contactRows = getContactRows(settings);
-  const stripTypes: Array<'person' | 'phone' | 'email' | 'web' | 'location'> = [
-    'person',
-    ...contactRows.map((row) => row.type),
-  ];
-  const detailRows = getPrestigeDetailRows(settings);
+  const { navy, gold } = prestigePalette(settings);
+  const contactRows = buildCardContactBadgeRows(getContactRows(settings), {
+    textColor: 'rgba(255,255,255,0.92)',
+    badgeBg: 'transparent',
+    badgeBorder: gold,
+    iconColor: gold,
+    fontSize: '6.5px',
+    iconSize: 7,
+    badgeSize: 14,
+    badgeRadius: '3px',
+    iconColumnWidth: 14,
+    gap: '5px',
+    fontFamily: SPLIT_FONT,
+    fillWidth: true,
+  });
+  const personHeader = prestigePersonHeader(settings, gold);
+  const contactDivider =
+    personHeader && getContactRows(settings).length > 0
+      ? `<div style="width:100%;height:1px;background:rgba(255,255,255,0.2);margin-bottom:6px;flex-shrink:0;"></div>`
+      : '';
+  const qrPlateBorder = mixHex(gold, '#ffffff', 0.55);
+  const backTagline = settings.businessTagline?.trim()
+    ? `<p style="margin:2px 0 0;font-family:${SPLIT_FONT};font-size:5.5px;font-weight:500;color:rgba(255,255,255,0.7);text-align:center;line-height:1.35;${PRESTIGE_TEXT_WRAP}">${escapeHtml(settings.businessTagline.trim())}</p>`
+    : '';
   return `
-  <div style="height:100%;width:100%;background:${PRESTIGE_NAVY};position:relative;overflow:hidden;box-sizing:border-box;display:flex;">
-    <div style="width:38%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 6px;box-sizing:border-box;border-right:1px solid rgba(255,255,255,0.1);">
+  <div style="height:100%;width:100%;background:${navy};position:relative;overflow:hidden;box-sizing:border-box;font-family:${SPLIT_FONT};display:flex;">
+    <div style="width:36%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 6px;box-sizing:border-box;min-width:0;">
       ${buildCardLogo(lctx, 30, { onDark: true })}
-      <p style="margin:6px 0 0;font-size:6px;font-weight:700;color:${gold};letter-spacing:0.06em;text-transform:uppercase;text-align:center;">${cardDisplayName(settings)}</p>
-      <p style="margin:2px 0 0;font-size:5.5px;color:rgba(255,255,255,0.7);text-align:center;">${cardTagline(settings)}</p>
+      <p style="margin:6px 0 0;font-family:${SPLIT_FONT};font-size:6px;font-weight:700;color:${gold};letter-spacing:0.06em;text-transform:uppercase;text-align:center;line-height:1.3;${PRESTIGE_TEXT_WRAP}">${cardDisplayName(settings)}</p>
+      ${backTagline}
     </div>
-    <div style="width:14px;background:rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:8px 0;flex-shrink:0;">
-      ${buildPrestigeIconStrip([...stripTypes], gold)}
-    </div>
-    <div style="flex:1;padding:12px 10px 10px 6px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;position:relative;">
-      <p style="margin:0;font-size:10px;font-weight:700;color:#fff;letter-spacing:0.05em;text-transform:uppercase;">${cardPersonName(settings)}</p>
-      <p style="margin:2px 0 8px;font-size:7px;color:${gold};text-transform:uppercase;">${cardPersonTitle(settings)}</p>
-      <div style="width:100%;height:1px;background:rgba(255,255,255,0.2);margin-bottom:6px;"></div>
-      ${detailRows.map((line) => `<p style="margin:3px 0;font-size:6.5px;color:rgba(255,255,255,0.9);line-height:1.35;">${escapeHtml(line)}</p>`).join('')}
-      <div style="position:absolute;bottom:8px;right:8px;">${buildCardQrCode(settings, 26, '#fff', PRESTIGE_NAVY)}</div>
+    <div style="width:2px;background:${gold};flex-shrink:0;opacity:0.92;"></div>
+    <div style="flex:1;display:flex;min-width:0;overflow:hidden;">
+      <div style="flex:1;padding:12px 8px 10px 10px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;min-width:0;overflow:hidden;">
+        ${personHeader}
+        ${contactDivider}
+        <div style="flex:1;min-height:0;overflow:hidden;">${contactRows}</div>
+      </div>
+      <div style="width:46px;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding:0 8px 10px 2px;box-sizing:border-box;">
+        <div style="padding:4px;border:1px solid ${qrPlateBorder};border-radius:5px;background:rgba(255,255,255,0.06);box-sizing:border-box;">
+          ${buildCardQrCode(settings, 28, '#fff', navy)}
+        </div>
+      </div>
     </div>
   </div>`;
-}
-
-function getPrestigeDetailRows(settings: AppSettings): string[] {
-  const contactRows = getContactRows(settings);
-  if (contactRows.length === 0) return ['Add contact in Settings'];
-  return contactRows.flatMap((row) => row.lines);
 }
 
 type TemplateBuilder = {

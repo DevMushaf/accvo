@@ -39,7 +39,7 @@ export const BUSINESS_CARD_TEMPLATE_OPTIONS: BusinessCardTemplateOption[] = [
   {
     id: 'prestige',
     label: 'Prestige',
-    description: 'White & gold front; navy icon-split back',
+    description: 'White & gold front; navy back with QR',
     accentColor: '#C5A059',
   },
 ];
@@ -96,6 +96,18 @@ export const ROYAL_ACCENT_PRESETS: string[] = [
   '#7C2D12',
 ];
 
+/** Gold accents for Prestige (front highlights only; back navy stays fixed). */
+export const PRESTIGE_ACCENT_PRESETS: string[] = [
+  '#C5A059',
+  '#C9A227',
+  '#B8860B',
+  '#D4AF37',
+  '#E8C547',
+  '#A67C00',
+  '#CFB53B',
+  '#C2A04A',
+];
+
 export function getCardAccentPresets(template: BusinessCardTemplate): string[] {
   switch (template) {
     case 'wave':
@@ -104,6 +116,8 @@ export function getCardAccentPresets(template: BusinessCardTemplate): string[] {
       return NAVY_ACCENT_PRESETS;
     case 'royal':
       return ROYAL_ACCENT_PRESETS;
+    case 'prestige':
+      return PRESTIGE_ACCENT_PRESETS;
     default:
       return CARD_ACCENT_PRESETS;
   }
@@ -117,6 +131,10 @@ export function getCardAccentColor(
   const fallback = DEFAULT_CARD_ACCENT_COLORS[template];
   if (!custom || !/^#[0-9A-Fa-f]{6}$/.test(custom)) return fallback;
   if (BRAND_COLOR_TEMPLATES.has(template) && isLightHex(custom)) return fallback;
+  if (template === 'prestige') {
+    const goldPreset = PRESTIGE_ACCENT_PRESETS.some((p) => p.toLowerCase() === custom.toLowerCase());
+    if (!goldPreset && !isLightHex(custom)) return fallback;
+  }
   return custom;
 }
 

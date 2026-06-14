@@ -19,7 +19,7 @@ function migrateBusinessCardAccentColors(
   colors: Partial<Record<string, string>>,
 ): Partial<Record<BusinessCardTemplate, string>> {
   const migrated = { ...colors } as Partial<Record<BusinessCardTemplate, string>>;
-  for (const template of ['wave', 'executive', 'orbit', 'royal'] as const) {
+  for (const template of ['wave', 'executive', 'orbit', 'royal', 'prestige'] as const) {
     const saved = migrated[template];
     if (!saved) continue;
     migrated[template] = getCardAccentColor(template, migrated);
