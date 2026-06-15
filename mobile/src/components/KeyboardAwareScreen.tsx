@@ -50,7 +50,6 @@ export const KeyboardAwareScreen = forwardRef<ScrollView, KeyboardAwareScreenPro
         keyboardDismissMode="on-drag"
         contentContainerStyle={[
           styles.content,
-          contentContainerStyle,
           { paddingBottom: 32 + extraKeyboardSpace },
         ]}
         showsVerticalScrollIndicator={false}
@@ -58,7 +57,7 @@ export const KeyboardAwareScreen = forwardRef<ScrollView, KeyboardAwareScreenPro
           ? { automaticallyAdjustKeyboardInsets: true }
           : {})}
       >
-        <View ref={contentRef} collapsable={false}>
+        <View ref={contentRef} style={contentContainerStyle} collapsable={false}>
           {children}
         </View>
       </ScrollView>

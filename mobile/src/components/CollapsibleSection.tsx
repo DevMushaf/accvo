@@ -49,7 +49,7 @@ export function CollapsibleSection({
 
 const styles = StyleSheet.create({
   wrap: {
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: 1,
     overflow: 'hidden',
   },

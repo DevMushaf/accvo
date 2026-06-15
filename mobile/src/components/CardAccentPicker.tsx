@@ -47,7 +47,7 @@ export function CardAccentPicker({ template, accentColors, onChange }: CardAccen
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.sm, marginTop: spacing.sm },
+  wrap: { gap: spacing.sm },
   label: { fontSize: typography.sm },
   grid: {
     flexDirection: 'row',

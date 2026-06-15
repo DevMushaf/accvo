@@ -119,7 +119,12 @@ export function BusinessLogoSection({ variant = 'settings' }: BusinessLogoSectio
       <Text style={[styles.label, { color: colors.text, fontFamily: fontFamily.medium }]}>
         {isCard ? 'Card logo (optional)' : 'Business logo (optional)'}
       </Text>
-      <Text style={[styles.hint, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
+      <Text
+        style={[
+          isCard ? styles.hintCard : styles.hint,
+          { color: colors.textSecondary, fontFamily: fontFamily.regular },
+        ]}
+      >
         {isCard
           ? 'Appears on the front and back of your card. Crop to a square or wide mark.'
           : 'Choose a photo, then drag the crop corners to any size. Pinch to zoom and pan the image.'}
@@ -238,6 +243,7 @@ const styles = StyleSheet.create({
   wrap: { marginBottom: spacing.sm },
   label: { fontSize: typography.sm, marginBottom: spacing.xs },
   hint: { fontSize: typography.sm, lineHeight: 20, marginBottom: spacing.sm },
+  hintCard: { fontSize: typography.xs, lineHeight: 18, marginBottom: spacing.sm },
   previewBox: {
     borderRadius: 12,
     borderWidth: 1,

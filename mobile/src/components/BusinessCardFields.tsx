@@ -25,7 +25,7 @@ function FieldHint({ children }: { children: ReactNode }) {
 export function BusinessCardFrontFields({ draft, onChange }: SectionProps) {
   return (
     <>
-      <FieldHint>Centered on the front — company name and slogan.</FieldHint>
+      <FieldHint>Company name and slogan on the front of the card.</FieldHint>
       <Input
         label="Company name"
         value={draft.businessName}
@@ -39,13 +39,12 @@ export function BusinessCardFrontFields({ draft, onChange }: SectionProps) {
         placeholder="Slogan here"
       />
       <Input
-        label="Website (optional)"
+        label="Website (optional, shown on front)"
         value={draft.businessWebsite}
         onChangeText={(v) => onChange('businessWebsite', v)}
         placeholder="www.yourwebsite.com"
         autoCapitalize="none"
       />
-      <FieldHint>Shown in the website footer on the front only.</FieldHint>
     </>
   );
 }
@@ -53,7 +52,7 @@ export function BusinessCardFrontFields({ draft, onChange }: SectionProps) {
 export function BusinessCardPersonFields({ draft, onChange }: SectionProps) {
   return (
     <>
-      <FieldHint>Top-left on the back navy section.</FieldHint>
+      <FieldHint>Name and title on the back of the card.</FieldHint>
       <Input
         label="Your name"
         value={draft.businessCardPersonName}
@@ -73,7 +72,7 @@ export function BusinessCardPersonFields({ draft, onChange }: SectionProps) {
 export function BusinessCardContactFields({ draft, onChange }: SectionProps) {
   return (
     <>
-      <FieldHint>Navy section on the back — phone, email, and address.</FieldHint>
+      <FieldHint>Phone, email, and address on the back of the card.</FieldHint>
       <Input
         label="Phone"
         value={draft.businessPhone}

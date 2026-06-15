@@ -26,7 +26,7 @@ import {
   shareBusinessCardPreviewPng,
 } from '@/services/pdfService';
 import { useSettingsStore } from '@/store/settingsStore';
-import { fontFamily, spacing, typography } from '@/theme';
+import { fontFamily, radius, spacing, typography } from '@/theme';
 import { BUSINESS_CARD_TEMPLATE_OPTIONS, getCardAccentColor } from '@/types/businessCardTemplate';
 import type { BusinessCardTemplate } from '@/types/businessCardTemplate';
 
@@ -148,7 +148,7 @@ export default function BusinessCardScreen() {
     <KeyboardAwareScreen
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
-      extraKeyboardSpace={24}
+      extraKeyboardSpace={16}
     >
       <Card style={styles.previewCard}>
         <View style={styles.previewHeader}>
@@ -188,67 +188,72 @@ export default function BusinessCardScreen() {
         </View>
       </Card>
 
-      <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
-          Card design
-        </Text>
-        <TemplatePicker
-          options={BUSINESS_CARD_TEMPLATE_OPTIONS}
-          selectedId={settings.businessCardTemplate}
-          onSelect={(id) => void updateSettings({ businessCardTemplate: id as BusinessCardTemplate })}
-        />
-        <CardAccentPicker
-          template={settings.businessCardTemplate}
-          accentColors={settings.businessCardAccentColors}
-          onChange={handleAccentChange}
-        />
-      </Card>
+      <View style={styles.editorZone}>
+        <Card style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fontFamily.semibold }]}>
+            Card design
+          </Text>
+          <TemplatePicker
+            options={BUSINESS_CARD_TEMPLATE_OPTIONS}
+            selectedId={settings.businessCardTemplate}
+            onSelect={(id) => void updateSettings({ businessCardTemplate: id as BusinessCardTemplate })}
+          />
+          <CardAccentPicker
+            template={settings.businessCardTemplate}
+            accentColors={settings.businessCardAccentColors}
+            onChange={handleAccentChange}
+          />
+        </Card>
 
-      <View style={styles.accordionStack}>
-        <CollapsibleSection
-          title="Front — brand"
-          hint="Logo, company, slogan, website footer"
-          defaultOpen
-        >
-          <BusinessCardFrontFields draft={draft} onChange={setField} />
-          <BusinessLogoSection variant="card" />
-        </CollapsibleSection>
+        <View style={styles.accordionStack}>
+          <CollapsibleSection
+            title="Front — brand"
+            hint="Logo, company, slogan, website"
+            defaultOpen
+          >
+            <BusinessCardFrontFields draft={draft} onChange={setField} />
+            <View style={[styles.logoDivider, { backgroundColor: colors.border }]} />
+            <BusinessLogoSection variant="card" />
+          </CollapsibleSection>
 
-        <CollapsibleSection title="Back — you" hint="Name and title on navy section">
-          <BusinessCardPersonFields draft={draft} onChange={setField} />
-        </CollapsibleSection>
+          <CollapsibleSection title="Back — you" hint="Name and title on the back">
+            <BusinessCardPersonFields draft={draft} onChange={setField} />
+          </CollapsibleSection>
 
-        <CollapsibleSection title="Back — contact" hint="Phone, email, address">
-          <BusinessCardContactFields draft={draft} onChange={setField} />
-        </CollapsibleSection>
+          <CollapsibleSection title="Back — contact" hint="Phone, email, address">
+            <BusinessCardContactFields draft={draft} onChange={setField} />
+          </CollapsibleSection>
+        </View>
       </View>
 
-      <Text style={[styles.saveHint, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
-        Changes save automatically when you leave this screen.
-      </Text>
+      <View style={styles.footerZone}>
+        <Text style={[styles.saveHint, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
+          Changes save automatically when you leave this screen.
+        </Text>
 
-      <View style={styles.actions}>
-        <Button title="Share PDF" onPress={handleSharePdf} loading={sharing} style={styles.primaryBtn} />
-        <Button
-          title="Share image"
-          variant="secondary"
-          onPress={() => startCapture('preview')}
-          loading={sharing}
-          style={styles.secondaryBtn}
-        />
+        <View style={styles.actions}>
+          <Button title="Share PDF" onPress={handleSharePdf} loading={sharing} style={styles.primaryBtn} />
+          <Button
+            title="Share image"
+            variant="secondary"
+            onPress={() => startCapture('preview')}
+            loading={sharing}
+            style={styles.secondaryBtn}
+          />
+        </View>
+
+        <Pressable onPress={() => setExportMenuVisible(true)} style={styles.moreLink}>
+          <Text style={[styles.moreLinkText, { color: colors.primary, fontFamily: fontFamily.medium }]}>
+            More export options
+          </Text>
+        </Pressable>
+
+        {settings.subscriptionTier === 'free' ? (
+          <Text style={[styles.hint, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
+            Free PDFs include a small Accvo credit. Upgrade to Pro to remove it.
+          </Text>
+        ) : null}
       </View>
-
-      <Pressable onPress={() => setExportMenuVisible(true)} style={styles.moreLink}>
-        <Text style={[styles.moreLinkText, { color: colors.primary, fontFamily: fontFamily.medium }]}>
-          More export options
-        </Text>
-      </Pressable>
-
-      {settings.subscriptionTier === 'free' ? (
-        <Text style={[styles.hint, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
-          Free PDFs include a small Accvo credit. Upgrade to Pro to remove it.
-        </Text>
-      ) : null}
 
       <OverflowMenu visible={exportMenuVisible} onClose={() => setExportMenuVisible(false)} items={exportMenuItems} />
 
@@ -267,34 +272,37 @@ export default function BusinessCardScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
-  previewCard: { marginBottom: 0, gap: spacing.sm },
+  content: { padding: spacing.md, gap: spacing.lg },
+  previewCard: { gap: spacing.sm },
   previewHeader: { gap: spacing.sm },
   previewTitle: { fontSize: typography.base },
   tabRow: {
     flexDirection: 'row',
-    borderRadius: 10,
-    padding: 3,
-    gap: 4,
+    borderRadius: radius.md,
+    padding: spacing.xs,
+    gap: spacing.xs,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: spacing.sm - 1,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: 'transparent',
   },
   tabLabel: { fontSize: typography.sm },
   previewWrap: { width: '100%' },
-  section: { marginBottom: 0, gap: spacing.md },
-  sectionTitle: { fontSize: typography.base, marginBottom: spacing.xs },
-  accordionStack: { gap: spacing.sm },
-  saveHint: { fontSize: typography.xs, textAlign: 'center', marginTop: -spacing.xs },
+  editorZone: { gap: spacing.lg },
+  section: { gap: spacing.md },
+  sectionTitle: { fontSize: typography.base },
+  accordionStack: { gap: spacing.lg },
+  footerZone: { gap: spacing.lg },
+  saveHint: { fontSize: typography.xs, lineHeight: 18, textAlign: 'center', opacity: 0.85 },
   actions: { flexDirection: 'row', gap: spacing.sm },
   primaryBtn: { flex: 1 },
   secondaryBtn: { flex: 1 },
   moreLink: { alignItems: 'center', paddingVertical: spacing.xs },
   moreLinkText: { fontSize: typography.sm },
-  hint: { fontSize: typography.xs, textAlign: 'center' },
+  hint: { fontSize: typography.xs, lineHeight: 18, textAlign: 'center' },
+  logoDivider: { height: 1, marginVertical: spacing.sm },
 });
